@@ -2,8 +2,6 @@
 
 A personal website uptime monitoring app built with Laravel & Vue.js. Keep track of your websites, get notified when they go down, and monitor performance—all from a clean, simple dashboard.
 
-**Repository**: [alecscodes/pulse](https://github.com/alecscodes/pulse)
-
 ---
 
 ## ✨ Features
