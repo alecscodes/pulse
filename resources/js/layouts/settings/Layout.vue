@@ -27,6 +27,14 @@ const sidebarNavItems: NavItem[] = [
         title: 'Appearance',
         href: editAppearance(),
     },
+    {
+        title: 'Monitoring',
+        href: '/settings/monitoring',
+    },
+    {
+        title: 'Registration',
+        href: '/settings/registration',
+    },
 ];
 
 const currentPath = typeof window !== undefined ? window.location.pathname : '';
