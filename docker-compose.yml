@@ -1,0 +1,57 @@
+services:
+  app:
+    build: .
+    container_name: pulse-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - pulse_database:/var/www/html/database
+      - .env:/var/www/html/.env
+      - ./storage:/var/www/html/storage
+    command: php artisan serve --host=0.0.0.0 --port=${APP_PORT:-8000}
+    ports:
+      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
+    networks:
+      - pulse-network
+
+  queue:
+    build: .
+    container_name: pulse-queue
+    restart: always
+    depends_on:
+      - app
+    env_file:
+      - .env
+    volumes:
+      - pulse_database:/var/www/html/database
+      - .env:/var/www/html/.env
+      - ./storage:/var/www/html/storage
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=3600
+    networks:
+      - pulse-network
+
+  scheduler:
+    build: .
+    container_name: pulse-scheduler
+    restart: always
+    depends_on:
+      - app
+    env_file:
+      - .env
+    volumes:
+      - pulse_database:/var/www/html/database
+      - .env:/var/www/html/.env
+      - ./storage:/var/www/html/storage
+    command: php artisan schedule:work
+    networks:
+      - pulse-network
+
+volumes:
+  pulse_database:
+    driver: local
+
+networks:
+  pulse-network:
+    driver: bridge
+
