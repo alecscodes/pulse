@@ -1,57 +1,60 @@
 services:
   app:
-    build: .
-    container_name: pulse-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: pulse_app
     restart: unless-stopped
+    volumes:
+      - ./storage:/var/www/storage
+      - ./database:/var/www/database
     env_file:
       - .env
-    volumes:
-      - pulse_database:/var/www/html/database
-      - .env:/var/www/html/.env
-      - ./storage:/var/www/html/storage
-    command: php artisan serve --host=0.0.0.0 --port=${APP_PORT:-8000}
-    ports:
-      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://web:80/up || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
     networks:
-      - pulse-network
+      - app-network
 
-  queue:
-    build: .
-    container_name: pulse-queue
-    restart: always
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    container_name: pulse_web
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app
-    env_file:
-      - .env
-    volumes:
-      - pulse_database:/var/www/html/database
-      - .env:/var/www/html/.env
-      - ./storage:/var/www/html/storage
-    command: php artisan queue:work --sleep=3 --tries=3 --timeout=3600
     networks:
-      - pulse-network
+      - app-network
 
   scheduler:
-    build: .
-    container_name: pulse-scheduler
-    restart: always
-    depends_on:
-      - app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: pulse_scheduler
+    restart: unless-stopped
+    entrypoint: ["/scheduler-entrypoint.sh"]
+    volumes:
+      - ./storage:/var/www/storage
+      - ./database:/var/www/database
     env_file:
       - .env
-    volumes:
-      - pulse_database:/var/www/html/database
-      - .env:/var/www/html/.env
-      - ./storage:/var/www/html/storage
-    command: php artisan schedule:work
+    depends_on:
+      - app
     networks:
-      - pulse-network
-
-volumes:
-  pulse_database:
-    driver: local
+      - app-network
 
 networks:
-  pulse-network:
+  app-network:
     driver: bridge
 

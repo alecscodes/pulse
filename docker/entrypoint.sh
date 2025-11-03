@@ -1,24 +1,33 @@
 #!/bin/sh
+set -e
 
-DB_PATH=${DB_DATABASE:-/var/www/html/database/database.sqlite}
-if [ ! -f "$DB_PATH" ]; then
-    touch "$DB_PATH"
-fi
-
-# Run composer post-install scripts
-composer dump-autoload --optimize --classmap-authoritative || true
-
-# Generate APP_KEY if not set
-if [ -z "$APP_KEY" ]; then
+# Generate app key only if missing
+if [ -z "${APP_KEY}" ]; then
+    echo "Generating app key..."
     php artisan key:generate --force
 fi
 
+# Wait for database to be ready
+if [ -f /var/www/database/database.sqlite ]; then
+    echo "SQLite database exists"
+else
+    echo "Creating SQLite database..."
+    touch /var/www/database/database.sqlite
+    chown www-data:www-data /var/www/database/database.sqlite
+    chmod 664 /var/www/database/database.sqlite
+fi
+
 # Run migrations
-php artisan migrate --force || true
+php artisan migrate --force
 
-# Clear cache to avoid MAC errors
-php artisan optimize:clear || true
+# Optimize Composer autoloader (ensure optimization)
+composer dump-autoload --optimize --no-interaction
 
-# Execute command
-exec "$@"
+# Clear optimizations
+php artisan optimize:clear
 
+# Cache Laravel optimizations
+php artisan optimize
+
+# Start PHP-FPM
+exec php-fpm
