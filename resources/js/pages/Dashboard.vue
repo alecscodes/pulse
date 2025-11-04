@@ -8,8 +8,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import AppLayout from '@/layouts/AppLayout.vue';
 import UpdateNotification from '@/components/UpdateNotification.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';

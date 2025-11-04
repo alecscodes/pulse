@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
-import { AlertCircle, CheckCircle2, Download, RefreshCw } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import {
+    AlertCircle,
+    CheckCircle2,
+    Download,
+    RefreshCw,
+} from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
 
 interface UpdateInfo {
     available: boolean;
@@ -42,7 +46,10 @@ const checkForUpdates = async (): Promise<void> => {
             current_commit: null,
             remote_commit: null,
             commits_behind: 0,
-            error: error instanceof Error ? error.message : 'Failed to check for updates',
+            error:
+                error instanceof Error
+                    ? error.message
+                    : 'Failed to check for updates',
         };
     } finally {
         isChecking.value = false;
@@ -63,9 +70,10 @@ const performUpdate = async (): Promise<void> => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document
-                    .querySelector('meta[name="csrf-token"]')
-                    ?.getAttribute('content') || '',
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute('content') || '',
             },
         });
 
@@ -89,7 +97,10 @@ const performUpdate = async (): Promise<void> => {
             success: false,
             message: 'Update failed',
             output: null,
-            error: error instanceof Error ? error.message : 'Failed to perform update',
+            error:
+                error instanceof Error
+                    ? error.message
+                    : 'Failed to perform update',
         };
         showUpdateResult.value = true;
     } finally {
@@ -103,7 +114,10 @@ onMounted(() => {
 </script>
 
 <template>
-    <div v-if="updateInfo && (updateInfo.available || updateInfo.error)" class="mb-4">
+    <div
+        v-if="updateInfo && (updateInfo.available || updateInfo.error)"
+        class="mb-4"
+    >
         <Alert
             :variant="updateInfo.error ? 'destructive' : 'default'"
             class="border-blue-500/50 bg-blue-500/10 dark:border-blue-500/50 dark:bg-blue-500/10"
@@ -132,9 +146,16 @@ onMounted(() => {
                             new commit(s) available.
                         </p>
 
-                        <div v-if="showUpdateResult && updateResult" class="mt-2">
+                        <div
+                            v-if="showUpdateResult && updateResult"
+                            class="mt-2"
+                        >
                             <Alert
-                                :variant="updateResult.success ? 'default' : 'destructive'"
+                                :variant="
+                                    updateResult.success
+                                        ? 'default'
+                                        : 'destructive'
+                                "
                                 class="mt-2"
                             >
                                 <CheckCircle2
@@ -148,15 +169,21 @@ onMounted(() => {
                                 </AlertTitle>
 
                                 <AlertDescription v-if="updateResult.error">
-                                    <p class="text-sm">{{ updateResult.error }}</p>
+                                    <p class="text-sm">
+                                        {{ updateResult.error }}
+                                    </p>
                                 </AlertDescription>
 
                                 <AlertDescription
-                                    v-if="updateResult.output && updateResult.success"
+                                    v-if="
+                                        updateResult.output &&
+                                        updateResult.success
+                                    "
                                 >
                                     <pre
                                         class="mt-2 max-h-40 overflow-auto rounded bg-muted p-2 text-xs"
-                                    >{{ updateResult.output }}</pre>
+                                        >{{ updateResult.output }}</pre
+                                    >
                                 </AlertDescription>
                             </Alert>
                         </div>
@@ -195,4 +222,3 @@ onMounted(() => {
         </Alert>
     </div>
 </template>
-
