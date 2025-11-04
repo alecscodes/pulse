@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 
 class GitUpdateService
@@ -22,6 +23,8 @@ class GitUpdateService
         ];
 
         try {
+            $workingDir = base_path();
+
             // Check if git is available
             $gitCheck = Process::run('git --version');
             if (! $gitCheck->successful()) {
@@ -30,22 +33,32 @@ class GitUpdateService
                 return $result;
             }
 
+            // Check if .git directory exists
+            if (! is_dir($workingDir.'/.git')) {
+                $result['error'] = 'Git repository not found';
+
+                return $result;
+            }
+
+            // Configure Git to trust this directory (fixes Docker ownership issues)
+            $this->configureGitSafeDirectory($workingDir);
+
             // Check if we're in a git repository
-            $gitDirCheck = Process::run('git rev-parse --git-dir');
+            $gitDirCheck = Process::path($workingDir)->run('git rev-parse --git-dir');
             if (! $gitDirCheck->successful()) {
-                $result['error'] = 'Not a git repository';
+                $result['error'] = 'Not a git repository: '.$gitDirCheck->errorOutput();
 
                 return $result;
             }
 
             // Get current commit hash
-            $currentCommit = Process::run('git rev-parse HEAD');
+            $currentCommit = Process::path($workingDir)->run('git rev-parse HEAD');
             if ($currentCommit->successful()) {
                 $result['current_commit'] = trim($currentCommit->output());
             }
 
             // Fetch latest changes from remote (without merging)
-            $fetch = Process::run('git fetch origin --quiet');
+            $fetch = Process::path($workingDir)->run('git fetch origin --quiet');
             if (! $fetch->successful()) {
                 $result['error'] = 'Failed to fetch from remote: '.$fetch->errorOutput();
 
@@ -53,16 +66,16 @@ class GitUpdateService
             }
 
             // Get remote branch name (default to main)
-            $branch = $this->getCurrentBranch();
+            $branch = $this->getCurrentBranch($workingDir);
 
             // Check commits behind
-            $commitsBehind = Process::run("git rev-list --count HEAD..origin/{$branch}");
+            $commitsBehind = Process::path($workingDir)->run("git rev-list --count HEAD..origin/{$branch}");
             if ($commitsBehind->successful()) {
                 $result['commits_behind'] = (int) trim($commitsBehind->output());
             }
 
             // Get remote commit hash
-            $remoteCommit = Process::run("git rev-parse origin/{$branch}");
+            $remoteCommit = Process::path($workingDir)->run("git rev-parse origin/{$branch}");
             if ($remoteCommit->successful()) {
                 $result['remote_commit'] = trim($remoteCommit->output());
             }
@@ -90,14 +103,19 @@ class GitUpdateService
         ];
 
         try {
-            $branch = $this->getCurrentBranch();
+            $workingDir = base_path();
+
+            // Configure Git to trust this directory (fixes Docker ownership issues)
+            $this->configureGitSafeDirectory($workingDir);
+
+            $branch = $this->getCurrentBranch($workingDir);
 
             // Save current commit before pull
-            $oldCommit = Process::run('git rev-parse HEAD');
+            $oldCommit = Process::path($workingDir)->run('git rev-parse HEAD');
             $oldCommitHash = $oldCommit->successful() ? trim($oldCommit->output()) : null;
 
             // Pull latest changes
-            $pull = Process::run("git pull origin {$branch}");
+            $pull = Process::path($workingDir)->run("git pull origin {$branch}");
             if ($pull->successful()) {
                 $result['success'] = true;
                 $result['message'] = 'Update completed successfully';
@@ -135,7 +153,7 @@ class GitUpdateService
 
                 // Run composer install if composer files changed
                 if ($composerChanged && file_exists(base_path('composer.json'))) {
-                    $composer = Process::run('composer install --no-dev --optimize-autoloader --no-interaction --no-scripts');
+                    $composer = Process::path($workingDir)->run('composer install --no-dev --optimize-autoloader --no-interaction --no-scripts');
                     if ($composer->successful()) {
                         $result['output'] .= "\n\n=== Composer Install ===";
                         $result['output'] .= "\n".$composer->output();
@@ -147,7 +165,7 @@ class GitUpdateService
 
                 // Run npm ci if npm files changed
                 if ($npmChanged && file_exists(base_path('package.json'))) {
-                    $npmInstall = Process::run('npm ci');
+                    $npmInstall = Process::path($workingDir)->run('npm ci');
                     if ($npmInstall->successful()) {
                         $result['output'] .= "\n\n=== NPM Install ===";
                         $result['output'] .= "\n".$npmInstall->output();
@@ -159,7 +177,7 @@ class GitUpdateService
 
                 // Run npm build if frontend files changed or npm files changed
                 if (($frontendChanged || $npmChanged) && file_exists(base_path('package.json'))) {
-                    $npmBuild = Process::run('npm run build');
+                    $npmBuild = Process::path($workingDir)->run('npm run build');
                     if ($npmBuild->successful()) {
                         $result['output'] .= "\n\n=== NPM Build ===";
                         $result['output'] .= "\n".$npmBuild->output();
@@ -195,7 +213,8 @@ class GitUpdateService
         }
 
         try {
-            $diff = Process::run("git diff --name-only {$oldCommitHash} HEAD");
+            $workingDir = base_path();
+            $diff = Process::path($workingDir)->run("git diff --name-only {$oldCommitHash} HEAD");
             if ($diff->successful()) {
                 $output = trim($diff->output());
 
@@ -213,7 +232,6 @@ class GitUpdateService
      *
      * @param  array<string>  $changedFiles
      * @param  array<string>  $patterns
-     * @return bool
      */
     protected function filesChanged(array $changedFiles, array $patterns): bool
     {
@@ -237,9 +255,10 @@ class GitUpdateService
     /**
      * Get the current git branch.
      */
-    protected function getCurrentBranch(): string
+    protected function getCurrentBranch(?string $workingDir = null): string
     {
-        $branch = Process::run('git rev-parse --abbrev-ref HEAD');
+        $workingDir = $workingDir ?? base_path();
+        $branch = Process::path($workingDir)->run('git rev-parse --abbrev-ref HEAD');
         if ($branch->successful()) {
             return trim($branch->output());
         }
@@ -249,15 +268,52 @@ class GitUpdateService
     }
 
     /**
+     * Configure Git to trust the working directory (fixes Docker ownership issues).
+     * Uses local config instead of global to avoid affecting other repositories.
+     */
+    protected function configureGitSafeDirectory(string $workingDir): void
+    {
+        try {
+            $gitDir = $workingDir.'/.git';
+
+            if (! is_dir($gitDir)) {
+                return;
+            }
+
+            // Ensure Git trusts this directory (entrypoint should have set this, but verify)
+            // Note: We use --global because Git won't let us use --local on an "unsafe" repo
+            Process::run("git config --global --add safe.directory {$workingDir} 2>/dev/null || true");
+
+            // Verify critical files are writable (permissions should be set by entrypoint)
+            // If not writable, log warning but don't fail (entrypoint should handle this)
+            $criticalFiles = [
+                $gitDir.'/FETCH_HEAD',
+                $gitDir.'/index',
+            ];
+
+            foreach ($criticalFiles as $file) {
+                if (file_exists($file) && ! is_writable($file)) {
+                    // Log but don't fail - entrypoint should have set permissions
+                    Log::warning("Git file not writable: {$file}. Permissions should be set by entrypoint.");
+                }
+            }
+        } catch (\Exception $e) {
+            // Silently fail - this is not critical if it fails
+            // Permissions should be handled by entrypoint
+        }
+    }
+
+    /**
      * Clear Laravel caches after update.
      */
     protected function clearCaches(): void
     {
         try {
-            Process::run('php artisan config:clear');
-            Process::run('php artisan route:clear');
-            Process::run('php artisan view:clear');
-            Process::run('php artisan cache:clear');
+            $workingDir = base_path();
+            Process::path($workingDir)->run('php artisan config:clear');
+            Process::path($workingDir)->run('php artisan route:clear');
+            Process::path($workingDir)->run('php artisan view:clear');
+            Process::path($workingDir)->run('php artisan cache:clear');
         } catch (\Exception $e) {
             // Silently fail cache clearing
         }

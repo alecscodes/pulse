@@ -42,6 +42,34 @@ set_ownership /var/www/storage /var/www/bootstrap/cache /var/www/database
 find /var/www/storage /var/www/bootstrap/cache /var/www/database -type d -exec chmod 775 {} \;
 find /var/www/storage /var/www/bootstrap/cache /var/www/database -type f -exec chmod 664 {} \;
 
+# Fix Git directory permissions if .git exists (for update functionality)
+# Best practice: Set permissions at container startup, not at runtime
+if [ -d "/var/www/.git" ]; then
+    log_info "Setting up Git directory permissions..."
+    # Set ownership first (this is critical for Docker volume mounts)
+    set_ownership /var/www/.git
+
+    # Set directory permissions (readable and executable)
+    find /var/www/.git -type d -exec chmod 755 {} \; 2>/dev/null || true
+
+    # Set file permissions (readable)
+    find /var/www/.git -type f -exec chmod 644 {} \; 2>/dev/null || true
+
+    # Make specific Git files writable (these are modified by Git operations)
+    [ -f "/var/www/.git/FETCH_HEAD" ] && chmod 666 /var/www/.git/FETCH_HEAD 2>/dev/null || true
+    [ -f "/var/www/.git/ORIG_HEAD" ] && chmod 666 /var/www/.git/ORIG_HEAD 2>/dev/null || true
+    [ -f "/var/www/.git/HEAD" ] && chmod 666 /var/www/.git/HEAD 2>/dev/null || true
+    [ -f "/var/www/.git/index" ] && chmod 666 /var/www/.git/index 2>/dev/null || true
+
+    # Make refs and logs writable (needed for Git operations)
+    [ -d "/var/www/.git/refs" ] && chmod -R 755 /var/www/.git/refs 2>/dev/null || true
+    [ -d "/var/www/.git/logs" ] && chmod -R 755 /var/www/.git/logs 2>/dev/null || true
+
+    # Configure Git to trust this directory (must be done before any git commands)
+    # We use --global here because Git refuses to run --local on an "unsafe" repo
+    git config --global --add safe.directory /var/www 2>/dev/null || true
+fi
+
 # Create storage symlink
 [ ! -L /var/www/public/storage ] && log_info "Creating storage symlink..." && php artisan storage:link || true
 
