@@ -39,6 +39,9 @@ function unbanIp(ip: string): void {
         router.delete('/settings/banned-ips/unban', {
             data: { ip },
             preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['bannedIps'] });
+            },
         });
     }
 }

@@ -19,13 +19,11 @@ class BannedIpsController extends Controller
         $bannedIps = DB::table('banned_ips')
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($ip) {
-                return [
-                    'ip' => $ip->ip,
-                    'reason' => $ip->reason,
-                    'banned_at' => $ip->created_at,
-                ];
-            });
+            ->map(fn ($ip) => [
+                'ip' => $ip->ip,
+                'reason' => $ip->reason,
+                'banned_at' => $ip->created_at,
+            ]);
 
         return Inertia::render('settings/BannedIps', [
             'bannedIps' => $bannedIps,

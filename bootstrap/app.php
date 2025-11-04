@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -30,9 +31,23 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
-            if (! $request->route()) {
-                app(IpBanService::class)->ban($request, 'Non-existent route: '.$request->path());
+        $exceptions->render(function (HttpException $e, Request $request) {
+            $service = app(IpBanService::class);
+
+            // If IP is banned, always return 403, even for 404 errors
+            if ($service->isBanned($request)) {
+                return response('Access denied', 403);
+            }
+
+            $path = $request->path();
+
+            if (str_starts_with($path, 'storage/')) {
+                $filePath = storage_path('app/public/'.ltrim(substr($path, 8), '/'));
+                if (! file_exists($filePath) && $service->shouldBanPath($path)) {
+                    $service->ban($request, 'Non-existent storage file: '.$path);
+                }
+            } elseif ($e instanceof NotFoundHttpException && ! $request->route() && $service->shouldBanPath($path)) {
+                $service->ban($request, 'Non-existent route: '.$path);
             }
 
             return null;
