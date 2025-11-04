@@ -9,6 +9,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
+import UpdateNotification from '@/components/UpdateNotification.vue';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
@@ -50,6 +51,8 @@ const breadcrumbs: BreadcrumbItem[] = [
         <div
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
+            <UpdateNotification />
+
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold">Dashboard</h1>

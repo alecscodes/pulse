@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     oniguruma-dev \
     libzip-dev \
     sqlite-dev \
+    git \
     && docker-php-ext-install \
     mbstring \
     zip \
@@ -46,6 +47,7 @@ RUN apk add --no-cache \
     sqlite \
     sqlite-dev \
     curl \
+    git \
     && docker-php-ext-install mbstring zip pdo pdo_sqlite
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
