@@ -35,6 +35,10 @@ const sidebarNavItems: NavItem[] = [
         title: 'Registration',
         href: '/settings/registration',
     },
+    {
+        title: 'Banned IPs',
+        href: '/settings/banned-ips',
+    },
 ];
 
 const currentPath = typeof window !== undefined ? window.location.pathname : '';

@@ -77,6 +77,36 @@ docker-compose up -d
 - **After setup**: Auto-disabled for security
 - **Manual control**: Enable/disable in **Settings → Registration**
 
+### 🔒 IP Banning System
+
+The application includes an automatic IP banning system to protect against attackers and malicious requests.
+
+**Automatic Banning:**
+
+- **Failed Login Attempts**: IPs are permanently banned after **2 failed login attempts**
+- **Non-existent Routes**: IPs accessing non-existent routes (e.g., `/wordpress`, `/wp-admin`) are permanently banned
+- **Multi-IP Detection**: Detects and bans all related IPs including:
+  - Client IP
+  - Forwarded IPs (X-Forwarded-For)
+  - Proxy/VPN IPs (CF-Connecting-IP, X-Real-Ip, etc.)
+  - Server IPs
+
+**Unbanning IPs:**
+
+Unban a specific IP:
+
+```bash
+php artisan ip:unban 192.168.1.100
+```
+
+Unban all IPs:
+
+```bash
+php artisan ip:unban --all
+```
+
+**Note**: Banned IPs are stored in the database and cached for performance. Unbanning clears both the database and cache entries.
+
 ---
 
 ## 📖 Usage
