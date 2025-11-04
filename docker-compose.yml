@@ -4,6 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
       target: app
+      args:
+        USER_ID: ${USER_ID:-82}
+        GROUP_ID: ${GROUP_ID:-82}
     container_name: pulse_app
     restart: unless-stopped
     volumes:
@@ -42,6 +45,9 @@ services:
       context: .
       dockerfile: Dockerfile
       target: app
+      args:
+        USER_ID: ${USER_ID:-82}
+        GROUP_ID: ${GROUP_ID:-82}
     container_name: pulse_scheduler
     restart: unless-stopped
     entrypoint: ['/scheduler-entrypoint.sh']

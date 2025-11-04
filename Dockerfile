@@ -35,7 +35,10 @@ RUN npm ci && npm run build
 # Stage 2: PHP-FPM application
 FROM php:8.4-fpm-alpine AS app
 
-# Install system dependencies and PHP extensions
+ARG USER_ID=82
+ARG GROUP_ID=82
+ENV USER_ID=${USER_ID} GROUP_ID=${GROUP_ID}
+
 RUN apk add --no-cache \
     oniguruma-dev \
     libzip-dev \
@@ -43,34 +46,20 @@ RUN apk add --no-cache \
     sqlite \
     sqlite-dev \
     curl \
-    && docker-php-ext-install \
-    mbstring \
-    zip \
-    pdo \
-    pdo_sqlite
+    && docker-php-ext-install mbstring zip pdo pdo_sqlite
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www
 
-# Copy application code
 COPY . .
-
-# Copy built assets from build stage
 COPY --from=build-assets /app/public/build ./public/build
 
-# Install Composer dependencies (production only)
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-req=ext-sockets
-
-# Set permissions for storage and cache directories
-RUN chown -R www-data:www-data storage bootstrap/cache database \
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-req=ext-sockets \
+    && chown -R ${USER_ID}:${GROUP_ID} storage bootstrap/cache database \
     && chmod -R 775 storage bootstrap/cache database
 
-# Copy entrypoint scripts
-COPY docker/entrypoint.sh /entrypoint.sh
-COPY docker/scheduler-entrypoint.sh /scheduler-entrypoint.sh
+COPY docker/entrypoint.sh docker/scheduler-entrypoint.sh /
 RUN chmod +x /entrypoint.sh /scheduler-entrypoint.sh
 
 # Default entrypoint
