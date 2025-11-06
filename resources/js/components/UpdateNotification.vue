@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Form, usePage } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import {
     AlertCircle,
@@ -25,9 +26,9 @@ interface UpdateResult {
     error: string | null;
 }
 
+const page = usePage();
 const updateInfo = ref<UpdateInfo | null>(null);
 const isChecking = ref(false);
-const isUpdating = ref(false);
 const updateResult = ref<UpdateResult | null>(null);
 const showUpdateResult = ref(false);
 
@@ -56,57 +57,26 @@ const checkForUpdates = async (): Promise<void> => {
     }
 };
 
-const performUpdate = async (): Promise<void> => {
-    if (!updateInfo.value?.available) {
-        return;
-    }
-
-    isUpdating.value = true;
-    updateResult.value = null;
-    showUpdateResult.value = false;
-
-    try {
-        const response = await fetch('/settings/updates/update', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN':
-                    document
-                        .querySelector('meta[name="csrf-token"]')
-                        ?.getAttribute('content') || '',
-            },
-        });
-
-        const data: UpdateResult = await response.json();
-        updateResult.value = data;
-        showUpdateResult.value = true;
-
-        if (data.success) {
-            // Refresh the page after successful update
-            setTimeout(() => {
-                router.reload();
-            }, 2000);
-        } else {
-            // Re-check after failed update
-            setTimeout(() => {
-                checkForUpdates();
-            }, 1000);
+const handleUpdateSuccess = (): void => {
+    // Flash data will be available after redirect
+    setTimeout(() => {
+        const flash = (page.props.flash as { updateResult?: UpdateResult } | undefined)?.updateResult;
+        if (flash) {
+            updateResult.value = flash;
+            showUpdateResult.value = true;
+            if (flash.success) {
+                setTimeout(() => {
+                    router.reload();
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    checkForUpdates();
+                }, 1000);
+            }
         }
-    } catch (error) {
-        updateResult.value = {
-            success: false,
-            message: 'Update failed',
-            output: null,
-            error:
-                error instanceof Error
-                    ? error.message
-                    : 'Failed to perform update',
-        };
-        showUpdateResult.value = true;
-    } finally {
-        isUpdating.value = false;
-    }
+    }, 100);
 };
+
 
 onMounted(() => {
     checkForUpdates();
@@ -189,21 +159,30 @@ onMounted(() => {
                         </div>
 
                         <div class="flex gap-2">
-                            <Button
-                                :disabled="isUpdating || isChecking"
-                                size="sm"
-                                @click="performUpdate"
+                            <Form
+                                action="/settings/updates/update"
+                                method="post"
+                                preserve-scroll
+                                @success="handleUpdateSuccess"
                             >
-                                <RefreshCw
-                                    v-if="isUpdating"
-                                    class="mr-2 size-4 animate-spin"
-                                />
-                                <Download v-else class="mr-2 size-4" />
-                                {{ isUpdating ? 'Updating...' : 'Update Now' }}
-                            </Button>
+                                <template #default="{ processing }">
+                                    <Button
+                                        :disabled="processing || isChecking"
+                                        size="sm"
+                                        type="submit"
+                                    >
+                                        <RefreshCw
+                                            v-if="processing"
+                                            class="mr-2 size-4 animate-spin"
+                                        />
+                                        <Download v-else class="mr-2 size-4" />
+                                        {{ processing ? 'Updating...' : 'Update Now' }}
+                                    </Button>
+                                </template>
+                            </Form>
 
                             <Button
-                                :disabled="isUpdating || isChecking"
+                                :disabled="isChecking"
                                 size="sm"
                                 variant="outline"
                                 @click="checkForUpdates"

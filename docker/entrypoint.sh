@@ -45,29 +45,26 @@ find /var/www/storage /var/www/bootstrap/cache /var/www/database -type f -exec c
 # Fix Git directory permissions if .git exists (for update functionality)
 # Best practice: Set permissions at container startup, not at runtime
 if [ -d "/var/www/.git" ]; then
-    log_info "Setting up Git directory permissions..."
-    # Set ownership first (this is critical for Docker volume mounts)
-    set_ownership /var/www/.git
+    log_info "Setting up Git directory permissions for updates..."
 
-    # Set directory permissions (readable and executable)
-    find /var/www/.git -type d -exec chmod 755 {} \; 2>/dev/null || true
+    # CRITICAL: Set ownership of entire working directory
+    # This allows Git to modify ANY file during updates (git reset --hard)
+    # Without this, Git cannot update bind-mounted files from host
+    log_info "Setting ownership of /var/www for Git operations..."
+    set_ownership /var/www
 
-    # Set file permissions (readable)
-    find /var/www/.git -type f -exec chmod 644 {} \; 2>/dev/null || true
+    # Set base directory permissions
+    find /var/www -type d -not -path "*/vendor/*" -not -path "*/node_modules/*" -exec chmod 755 {} \; 2>/dev/null || true
+    find /var/www -type f -not -path "*/vendor/*" -not -path "*/node_modules/*" -exec chmod 644 {} \; 2>/dev/null || true
 
-    # Make specific Git files writable (these are modified by Git operations)
-    [ -f "/var/www/.git/FETCH_HEAD" ] && chmod 666 /var/www/.git/FETCH_HEAD 2>/dev/null || true
-    [ -f "/var/www/.git/ORIG_HEAD" ] && chmod 666 /var/www/.git/ORIG_HEAD 2>/dev/null || true
-    [ -f "/var/www/.git/HEAD" ] && chmod 666 /var/www/.git/HEAD 2>/dev/null || true
-    [ -f "/var/www/.git/index" ] && chmod 666 /var/www/.git/index 2>/dev/null || true
-
-    # Make refs and logs writable (needed for Git operations)
-    [ -d "/var/www/.git/refs" ] && chmod -R 755 /var/www/.git/refs 2>/dev/null || true
-    [ -d "/var/www/.git/logs" ] && chmod -R 755 /var/www/.git/logs 2>/dev/null || true
+    # Make shell scripts executable
+    find /var/www -type f -name "*.sh" -exec chmod 755 {} \; 2>/dev/null || true
 
     # Configure Git to trust this directory (must be done before any git commands)
     # We use --global here because Git refuses to run --local on an "unsafe" repo
     git config --global --add safe.directory /var/www 2>/dev/null || true
+
+    log_info "Git directory permissions configured successfully"
 fi
 
 # Create storage symlink

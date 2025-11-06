@@ -48,6 +48,8 @@ RUN apk add --no-cache \
     sqlite-dev \
     curl \
     git \
+    nodejs \
+    npm \
     && docker-php-ext-install mbstring zip pdo pdo_sqlite
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -56,9 +58,10 @@ WORKDIR /var/www
 
 COPY . .
 COPY --from=build-assets /app/public/build ./public/build
+COPY --from=build-assets /app/node_modules ./node_modules
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-req=ext-sockets \
-    && chown -R ${USER_ID}:${GROUP_ID} storage bootstrap/cache database \
+    && chown -R ${USER_ID}:${GROUP_ID} storage bootstrap/cache database node_modules \
     && chmod -R 775 storage bootstrap/cache database
 
 COPY docker/entrypoint.sh docker/scheduler-entrypoint.sh /

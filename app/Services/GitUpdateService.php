@@ -104,96 +104,161 @@ class GitUpdateService
 
         try {
             $workingDir = base_path();
+            Log::info('[GitUpdate] Starting update process', ['working_dir' => $workingDir]);
 
             // Configure Git to trust this directory (fixes Docker ownership issues)
             $this->configureGitSafeDirectory($workingDir);
 
             $branch = $this->getCurrentBranch($workingDir);
+            Log::info('[GitUpdate] Current branch detected', ['branch' => $branch]);
 
-            // Save current commit before pull
+            // Save current commit before update
             $oldCommit = Process::path($workingDir)->run('git rev-parse HEAD');
             $oldCommitHash = $oldCommit->successful() ? trim($oldCommit->output()) : null;
+            Log::info('[GitUpdate] Current commit', ['commit' => $oldCommitHash]);
 
-            // Pull latest changes
-            $pull = Process::path($workingDir)->run("git pull origin {$branch}");
-            if ($pull->successful()) {
-                $result['success'] = true;
-                $result['message'] = 'Update completed successfully';
-                $result['output'] = $pull->output();
-
-                // Get list of changed files
-                $changedFiles = $this->getChangedFiles($oldCommitHash);
-
-                // Check if composer files were modified
-                $composerChanged = $this->filesChanged($changedFiles, [
-                    'composer.json',
-                    'composer.lock',
+            // Fetch latest changes from remote
+            Log::info('[GitUpdate] Fetching from remote...');
+            $fetch = Process::path($workingDir)->run('git fetch origin');
+            if (! $fetch->successful()) {
+                Log::error('[GitUpdate] Fetch failed', [
+                    'error' => $fetch->errorOutput(),
+                    'output' => $fetch->output(),
                 ]);
-
-                // Check if npm files were modified
-                $npmChanged = $this->filesChanged($changedFiles, [
-                    'package.json',
-                    'package-lock.json',
-                ]);
-
-                // Check if frontend files were modified
-                $frontendChanged = $this->filesChanged($changedFiles, [
-                    'resources/js/',
-                    'resources/css/',
-                    'vite.config.ts',
-                    'vite.config.js',
-                    'tsconfig.json',
-                    'tailwind.config.js',
-                    'tailwind.config.ts',
-                    'postcss.config.js',
-                    'postcss.config.ts',
-                    'eslint.config.js',
-                    'eslint.config.ts',
-                ]);
-
-                // Run composer install if composer files changed
-                if ($composerChanged && file_exists(base_path('composer.json'))) {
-                    $composer = Process::path($workingDir)->run('composer install --no-dev --optimize-autoloader --no-interaction --no-scripts');
-                    if ($composer->successful()) {
-                        $result['output'] .= "\n\n=== Composer Install ===";
-                        $result['output'] .= "\n".$composer->output();
-                    } else {
-                        $result['output'] .= "\n\n=== Composer Install Failed ===";
-                        $result['output'] .= "\n".$composer->errorOutput();
-                    }
-                }
-
-                // Run npm ci if npm files changed
-                if ($npmChanged && file_exists(base_path('package.json'))) {
-                    $npmInstall = Process::path($workingDir)->run('npm ci');
-                    if ($npmInstall->successful()) {
-                        $result['output'] .= "\n\n=== NPM Install ===";
-                        $result['output'] .= "\n".$npmInstall->output();
-                    } else {
-                        $result['output'] .= "\n\n=== NPM Install Failed ===";
-                        $result['output'] .= "\n".$npmInstall->errorOutput();
-                    }
-                }
-
-                // Run npm build if frontend files changed or npm files changed
-                if (($frontendChanged || $npmChanged) && file_exists(base_path('package.json'))) {
-                    $npmBuild = Process::path($workingDir)->run('npm run build');
-                    if ($npmBuild->successful()) {
-                        $result['output'] .= "\n\n=== NPM Build ===";
-                        $result['output'] .= "\n".$npmBuild->output();
-                    } else {
-                        $result['output'] .= "\n\n=== NPM Build Failed ===";
-                        $result['output'] .= "\n".$npmBuild->errorOutput();
-                    }
-                }
-
-                // Clear Laravel caches
-                $this->clearCaches();
-            } else {
-                $result['error'] = $pull->errorOutput();
+                $result['error'] = 'Failed to fetch from remote: '.$fetch->errorOutput();
                 $result['message'] = 'Update failed';
+
+                return $result;
             }
+            Log::info('[GitUpdate] Fetch successful');
+
+            // Force reset to remote branch (discards any local changes)
+            Log::info('[GitUpdate] Resetting to origin/'.$branch);
+
+            // First, ensure we have proper permissions for the operation
+            // This is critical in Docker environments with bind mounts
+            $this->ensureGitPermissions($workingDir);
+
+            $reset = Process::path($workingDir)->run("git reset --hard origin/{$branch}");
+            if (! $reset->successful()) {
+                Log::error('[GitUpdate] Reset failed', [
+                    'error' => $reset->errorOutput(),
+                    'output' => $reset->output(),
+                ]);
+                $result['error'] = 'Failed to reset to remote: '.$reset->errorOutput();
+                $result['message'] = 'Update failed';
+
+                return $result;
+            }
+            Log::info('[GitUpdate] Reset successful', ['output' => $reset->output()]);
+
+            // Clean untracked files (respects .gitignore)
+            Log::info('[GitUpdate] Cleaning untracked files...');
+            $clean = Process::path($workingDir)->run('git clean -fd');
+            Log::info('[GitUpdate] Clean completed', ['output' => $clean->output()]);
+
+            $result['success'] = true;
+            $result['message'] = 'Update completed successfully';
+            $result['output'] = $reset->output();
+
+            // Get list of changed files
+            $changedFiles = $this->getChangedFiles($oldCommitHash);
+            Log::info('[GitUpdate] Changed files detected', ['count' => count($changedFiles), 'files' => $changedFiles]);
+
+            // Fix permissions on updated files
+            Log::info('[GitUpdate] Fixing permissions...');
+            $this->fixPermissions($changedFiles);
+
+            // Check if composer files were modified
+            $composerChanged = $this->filesChanged($changedFiles, [
+                'composer.json',
+                'composer.lock',
+            ]);
+
+            // Check if npm files were modified
+            $npmChanged = $this->filesChanged($changedFiles, [
+                'package.json',
+                'package-lock.json',
+            ]);
+
+            // Check if frontend files were modified
+            $frontendChanged = $this->filesChanged($changedFiles, [
+                'resources/js/',
+                'resources/css/',
+                'vite.config.ts',
+                'vite.config.js',
+                'tsconfig.json',
+                'tailwind.config.js',
+                'tailwind.config.ts',
+                'postcss.config.js',
+                'postcss.config.ts',
+                'eslint.config.js',
+                'eslint.config.ts',
+            ]);
+
+            // Run composer install if composer files changed
+            if ($composerChanged && file_exists(base_path('composer.json'))) {
+                Log::info('[GitUpdate] Running composer install...');
+                $composer = Process::path($workingDir)->run('composer install --no-dev --optimize-autoloader --no-interaction --no-scripts');
+                if ($composer->successful()) {
+                    Log::info('[GitUpdate] Composer install successful');
+                    $result['output'] .= "\n\n=== Composer Install ===";
+                    $result['output'] .= "\n".$composer->output();
+                } else {
+                    Log::error('[GitUpdate] Composer install failed', [
+                        'error' => $composer->errorOutput(),
+                        'output' => $composer->output(),
+                    ]);
+                    $result['output'] .= "\n\n=== Composer Install Failed ===";
+                    $result['output'] .= "\n".$composer->errorOutput();
+                }
+            }
+
+            // Run npm ci if npm files changed
+            if ($npmChanged && file_exists(base_path('package.json'))) {
+                Log::info('[GitUpdate] Running npm ci...');
+                $npmInstall = Process::path($workingDir)->run('npm ci');
+                if ($npmInstall->successful()) {
+                    Log::info('[GitUpdate] NPM install successful');
+                    $result['output'] .= "\n\n=== NPM Install ===";
+                    $result['output'] .= "\n".$npmInstall->output();
+                } else {
+                    Log::error('[GitUpdate] NPM install failed', [
+                        'error' => $npmInstall->errorOutput(),
+                        'output' => $npmInstall->output(),
+                    ]);
+                    $result['output'] .= "\n\n=== NPM Install Failed ===";
+                    $result['output'] .= "\n".$npmInstall->errorOutput();
+                }
+            }
+
+            // Run npm build if frontend files changed or npm files changed
+            if (($frontendChanged || $npmChanged) && file_exists(base_path('package.json'))) {
+                Log::info('[GitUpdate] Running npm build...');
+                $npmBuild = Process::path($workingDir)->run('npm run build');
+                if ($npmBuild->successful()) {
+                    Log::info('[GitUpdate] NPM build successful');
+                    $result['output'] .= "\n\n=== NPM Build ===";
+                    $result['output'] .= "\n".$npmBuild->output();
+                } else {
+                    Log::error('[GitUpdate] NPM build failed', [
+                        'error' => $npmBuild->errorOutput(),
+                        'output' => $npmBuild->output(),
+                    ]);
+                    $result['output'] .= "\n\n=== NPM Build Failed ===";
+                    $result['output'] .= "\n".$npmBuild->errorOutput();
+                }
+            }
+
+            // Clear Laravel caches
+            Log::info('[GitUpdate] Clearing caches...');
+            $this->clearCaches();
+            Log::info('[GitUpdate] Update process completed successfully');
         } catch (\Exception $e) {
+            Log::error('[GitUpdate] Update failed with exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             $result['error'] = $e->getMessage();
             $result['message'] = 'Update failed: '.$e->getMessage();
         }
@@ -316,6 +381,72 @@ class GitUpdateService
             Process::path($workingDir)->run('php artisan cache:clear');
         } catch (\Exception $e) {
             // Silently fail cache clearing
+        }
+    }
+
+    /**
+     * Ensure Git has proper permissions to modify files.
+     * Critical for Docker environments with bind mounts.
+     */
+    protected function ensureGitPermissions(string $workingDir): void
+    {
+        try {
+            $uid = posix_getuid();
+            $gid = posix_getgid();
+
+            Log::info('[GitUpdate] Ensuring Git has write permissions...', [
+                'uid' => $uid,
+                'gid' => $gid,
+            ]);
+
+            // Fix ownership of entire working directory
+            // This is necessary because bind-mounted files from host may have different ownership
+            $chownResult = Process::run("chown -R {$uid}:{$gid} {$workingDir} 2>&1");
+
+            if (! $chownResult->successful()) {
+                Log::warning('[GitUpdate] Could not change ownership, trying alternative approach', [
+                    'error' => $chownResult->output(),
+                ]);
+
+                // Try changing just the essential directories
+                Process::run("chown -R {$uid}:{$gid} {$workingDir}/.git 2>/dev/null || true");
+                Process::run("chown {$uid}:{$gid} {$workingDir} 2>/dev/null || true");
+            } else {
+                Log::info('[GitUpdate] Ownership updated successfully');
+            }
+        } catch (\Exception $e) {
+            // Log but don't fail - permissions might already be correct
+            Log::warning('[GitUpdate] Permission setup encountered an issue: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Fix file permissions after git operations.
+     * Ensures updated files have correct ownership for Docker container user.
+     *
+     * @param  array<string>  $changedFiles
+     */
+    protected function fixPermissions(array $changedFiles): void
+    {
+        try {
+            $workingDir = base_path();
+            $uid = posix_getuid();
+            $gid = posix_getgid();
+
+            // Fix ownership of changed files to match container user
+            foreach ($changedFiles as $file) {
+                $fullPath = $workingDir.'/'.$file;
+                if (file_exists($fullPath)) {
+                    @chown($fullPath, $uid);
+                    @chgrp($fullPath, $gid);
+                }
+            }
+
+            // Fix .git directory ownership
+            Process::run("chown -R {$uid}:{$gid} {$workingDir}/.git 2>/dev/null || true");
+        } catch (\Exception $e) {
+            // Silently fail - permissions might already be correct
+            Log::debug('Permission fix failed: '.$e->getMessage());
         }
     }
 }

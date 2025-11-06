@@ -10,10 +10,15 @@ services:
     container_name: pulse_app
     restart: unless-stopped
     volumes:
+      # Mount entire project directory for Git updates to work
+      # Git needs to replace/modify any tracked file during updates
+      - .:/var/www:cached
+      # Preserve built vendor and node_modules (prevent host overwriting them)
+      - /var/www/vendor
+      - /var/www/node_modules
+      # Override storage to persist data
       - ./storage:/var/www/storage
       - ./database:/var/www/database
-      - .env:/var/www/.env
-      - ./.git:/var/www/.git
     env_file:
       - .env
     healthcheck:
@@ -36,6 +41,7 @@ services:
       - '${APP_PORT:-80}:80'
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./public:/usr/share/nginx/html/public:ro
     depends_on:
       - app
     networks:
@@ -53,10 +59,15 @@ services:
     restart: unless-stopped
     entrypoint: ['/scheduler-entrypoint.sh']
     volumes:
+      # Mount entire project directory for Git updates to work
+      # Git needs to replace/modify any tracked file during updates
+      - .:/var/www:cached
+      # Preserve built vendor and node_modules (prevent host overwriting them)
+      - /var/www/vendor
+      - /var/www/node_modules
+      # Override storage to persist data
       - ./storage:/var/www/storage
       - ./database:/var/www/database
-      - .env:/var/www/.env
-      - ./.git:/var/www/.git
     env_file:
       - .env
     depends_on:
