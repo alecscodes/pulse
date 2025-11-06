@@ -4,30 +4,16 @@ A personal website uptime monitoring app built with Laravel & Vue.js. Keep track
 
 ---
 
-## ✨ Features
-
-- **Multi-site Monitoring** – Track unlimited websites with custom check intervals
-- **HTTP/HTTPS Support** – Monitor GET/POST requests with custom headers & params
-- **Content Validation** – Verify expected content in responses
-- **Telegram Notifications** – Instant alerts when sites go down or recover
-- **Dashboard & Analytics** – Track uptime stats and response times
-- **Two-Factor Auth** – Secure your account with 2FA
-- **Dark Mode** – Beautiful UI with light/dark themes
-- **Mobile-First** – Fully responsive design
-
----
-
-## 🛠 Tech Stack
-
-**Backend**: Laravel 12 · PHP 8.4+  
-**Frontend**: Vue 3 · Inertia.js v2 · Tailwind CSS v4  
-**Database**: SQLite (MySQL/PostgreSQL supported)  
-**Testing**: Pest PHP v4  
-**Deploy**: Docker & Docker Compose
-
----
-
 ## 🚀 Quick Start
+
+### Docker Deployment
+
+```bash
+git clone https://github.com/alecscodes/pulse.git
+cd pulse
+cp .env.example .env
+docker-compose up -d
+```
 
 ### Local Development
 
@@ -51,14 +37,28 @@ composer run dev
 
 Visit `http://localhost:8000` 🎉
 
-### Docker Deployment
+---
 
-```bash
-git clone https://github.com/alecscodes/pulse.git
-cd pulse
-cp .env.example .env
-docker-compose up -d
-```
+## ✨ Features
+
+- **Multi-site Monitoring** – Track unlimited websites with custom check intervals
+- **HTTP/HTTPS Support** – Monitor GET/POST requests with custom headers & params
+- **Content Validation** – Verify expected content in responses
+- **Telegram Notifications** – Instant alerts when sites go down or recover
+- **Dashboard & Analytics** – Track uptime stats and response times
+- **Two-Factor Auth** – Secure your account with 2FA
+- **Dark Mode** – Beautiful UI with light/dark themes
+- **Mobile-First** – Fully responsive design
+
+---
+
+## 🛠 Tech Stack
+
+**Backend**: Laravel 12 · PHP 8.4+  
+**Frontend**: Vue 3 · Inertia.js v2 · Tailwind CSS v4  
+**Database**: SQLite (MySQL/PostgreSQL supported)  
+**Testing**: Pest PHP v4  
+**Deploy**: Docker & Docker Compose
 
 ---
 
