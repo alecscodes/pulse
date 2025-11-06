@@ -23,7 +23,7 @@ test('authenticated user can attempt to update', function () {
     $user = User::factory()->create();
 
     actingAs($user)
-        ->post('/settings/updates/update')
+        ->postJson('/settings/updates/update')
         ->assertSuccessful()
         ->assertJsonStructure([
             'success',
