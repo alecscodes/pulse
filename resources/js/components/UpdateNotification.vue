@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Form, usePage } from '@inertiajs/vue3';
-import { router } from '@inertiajs/vue3';
+import { Form, router, usePage } from '@inertiajs/vue3';
 import {
     AlertCircle,
     CheckCircle2,
@@ -24,6 +23,10 @@ interface UpdateResult {
     message: string;
     output: string | null;
     error: string | null;
+}
+
+interface FlashData {
+    updateResult?: UpdateResult;
 }
 
 const page = usePage();
@@ -58,25 +61,19 @@ const checkForUpdates = async (): Promise<void> => {
 };
 
 const handleUpdateSuccess = (): void => {
-    // Flash data will be available after redirect
     setTimeout(() => {
-        const flash = (page.props.flash as { updateResult?: UpdateResult } | undefined)?.updateResult;
+        const flash = (page.props.flash as FlashData)?.updateResult;
         if (flash) {
             updateResult.value = flash;
             showUpdateResult.value = true;
             if (flash.success) {
-                setTimeout(() => {
-                    router.reload();
-                }, 2000);
+                setTimeout(() => router.reload(), 2000);
             } else {
-                setTimeout(() => {
-                    checkForUpdates();
-                }, 1000);
+                setTimeout(() => checkForUpdates(), 1000);
             }
         }
     }, 100);
 };
-
 
 onMounted(() => {
     checkForUpdates();
@@ -152,8 +149,9 @@ onMounted(() => {
                                 >
                                     <pre
                                         class="mt-2 max-h-40 overflow-auto rounded bg-muted p-2 text-xs"
-                                        >{{ updateResult.output }}</pre
                                     >
+                                        {{ updateResult.output }}
+                                    </pre>
                                 </AlertDescription>
                             </Alert>
                         </div>
@@ -176,7 +174,11 @@ onMounted(() => {
                                             class="mr-2 size-4 animate-spin"
                                         />
                                         <Download v-else class="mr-2 size-4" />
-                                        {{ processing ? 'Updating...' : 'Update Now' }}
+                                        {{
+                                            processing
+                                                ? 'Updating...'
+                                                : 'Update Now'
+                                        }}
                                     </Button>
                                 </template>
                             </Form>

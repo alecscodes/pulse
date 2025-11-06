@@ -18,51 +18,29 @@ class UpdateController extends Controller
      */
     public function check(Request $request): JsonResponse
     {
-        $updateInfo = $this->gitUpdateService->checkForUpdates();
-
-        return response()->json($updateInfo);
+        return response()->json($this->gitUpdateService->checkForUpdates());
     }
 
     /**
      * Perform the update.
      */
-    public function update(Request $request)
+    public function update(Request $request): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         try {
-            \Log::info('[UpdateController] Update request received', [
-                'ip' => $request->ip(),
-                'user' => $request->user()?->id,
-            ]);
-
             $updateResult = $this->gitUpdateService->performUpdate();
-
-            \Log::info('[UpdateController] Update result', $updateResult);
-
-            // Return JSON for non-Inertia requests (API), Inertia response for Inertia requests
-            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
-                return response()->json($updateResult);
-            }
-
-            // For Inertia requests, return the result as props
-            return back()->with('updateResult', $updateResult);
         } catch (\Throwable $e) {
-            \Log::error('[UpdateController] Update failed with exception', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            $errorResult = [
+            $updateResult = [
                 'success' => false,
                 'message' => 'Update failed',
                 'output' => null,
                 'error' => $e->getMessage(),
             ];
-
-            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
-                return response()->json($errorResult, 500);
-            }
-
-            return back()->with('updateResult', $errorResult);
         }
+
+        if ($request->wantsJson() && ! $request->header('X-Inertia')) {
+            return response()->json($updateResult, $updateResult['success'] ? 200 : 500);
+        }
+
+        return back()->with('updateResult', $updateResult);
     }
 }
