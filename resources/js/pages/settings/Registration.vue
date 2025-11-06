@@ -95,10 +95,12 @@ const breadcrumbItems: BreadcrumbItem[] = [
                                     Enable user registration
                                 </Label>
                                 <p class="text-sm text-muted-foreground">
-                                    When enabled, users can create new accounts.
-                                    When disabled, registration is only allowed
-                                    if no users exist in the system (for initial
-                                    setup).
+                                    When enabled, the /register route is active
+                                    and users can create new accounts. When
+                                    disabled, registration routes and functions
+                                    are inactive. Registration is still allowed
+                                    only if no users exist in the system (for
+                                    initial setup).
                                 </p>
                                 <p
                                     v-if="error"
