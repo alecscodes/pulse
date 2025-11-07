@@ -41,6 +41,16 @@ The script is idempotent—safe to run multiple times. It only prompts for missi
 git clone https://github.com/alecscodes/pulse.git
 cd pulse
 cp .env.example .env
+```
+
+**Configure required environment variables in `.env`:**
+
+- `APP_URL` (required) - The full URL of your application (e.g., `http://localhost:8000` or `https://pulse.example.com`)
+- `APP_PORT` (optional) - Port to expose the application on (default: `8000`)
+
+Then start the containers:
+
+```bash
 docker-compose up -d
 ```
 
