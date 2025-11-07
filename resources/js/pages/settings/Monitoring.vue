@@ -59,8 +59,8 @@ const sendTestMessage = (): void => {
         {
             preserveScroll: true,
             onSuccess: () => {
-                const message = page.props.message as string;
-                const success = page.props.success;
+                const message = page.props.flash.message as string;
+                const success = page.props.flash.success;
 
                 if (message || success !== undefined) {
                     testMessage.value =
