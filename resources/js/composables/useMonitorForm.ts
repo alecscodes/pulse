@@ -1,7 +1,7 @@
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { toTypedSchema } from '@vee-validate/zod';
 import { useForm } from 'vee-validate';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import * as z from 'zod';
 
 export interface HeaderPair {
@@ -75,54 +75,79 @@ export const monitorFormSchema = toTypedSchema(
 export type MonitorFormValues = z.infer<typeof monitorFormSchema>;
 
 export function useMonitorForm(initialData: Partial<MonitorFormValues> = {}) {
-    const { handleSubmit, setFieldValue } = useForm<MonitorFormValues>({
+    const page = usePage();
+    const { handleSubmit, setFieldValue, setFieldError } = useForm({
         validationSchema: monitorFormSchema,
         initialValues: {
-            name: (initialData?.name ?? '') as string,
-            type: (initialData?.type ?? 'website') as 'website' | 'ip',
-            url: (initialData?.url ?? '') as string,
-            method: (initialData?.method ?? 'GET') as 'GET' | 'POST',
-            headers: (initialData?.headers && initialData.headers.length > 0
+            name: (initialData.name ?? '') as string,
+            type: (initialData.type ?? 'website') as 'website' | 'ip',
+            url: (initialData.url ?? '') as string,
+            method: (initialData.method ?? 'GET') as 'GET' | 'POST',
+            headers: (initialData.headers && initialData.headers.length > 0
                 ? [...initialData.headers, { key: '', value: '' }]
                 : [{ key: '', value: '' }]) as Array<{
                 key: string;
                 value: string;
             }>,
-            parameters: (initialData?.parameters &&
+            parameters: (initialData.parameters &&
             initialData.parameters.length > 0
                 ? [...initialData.parameters, { key: '', value: '' }]
                 : [{ key: '', value: '' }]) as Array<{
                 key: string;
                 value: string;
             }>,
-            enable_content_validation:
-                (initialData?.enable_content_validation ?? false) as boolean,
-            expected_title: (initialData?.expected_title ?? null) as
+            enable_content_validation: (initialData.enable_content_validation ??
+                false) as boolean,
+            expected_title: (initialData.expected_title ?? null) as
                 | string
-                | null
-                | undefined,
-            expected_content: (initialData?.expected_content ?? null) as
+                | null,
+            expected_content: (initialData.expected_content ?? null) as
                 | string
-                | null
-                | undefined,
-            is_active: (initialData?.is_active ?? true) as boolean,
-            check_interval: (initialData?.check_interval ?? 60) as number,
+                | null,
+            is_active: (initialData.is_active ?? true) as boolean,
+            check_interval: (initialData.check_interval ?? 60) as number,
         },
     });
 
-    const isActive = ref(initialData?.is_active ?? true);
-    const type = ref<'website' | 'ip'>(initialData?.type ?? 'website');
-    const method = ref<'GET' | 'POST'>(initialData?.method ?? 'GET');
+    // Sync Inertia validation errors with vee-validate
+    watch(
+        () => page.props.errors,
+        (errors) => {
+            if (!errors || typeof errors !== 'object') {
+                return;
+            }
+
+            const errorRecord = errors as Record<string, string | string[]>;
+            Object.entries(errorRecord).forEach(([field, message]) => {
+                const errorMessage = Array.isArray(message)
+                    ? message[0]
+                    : message;
+                if (typeof errorMessage === 'string') {
+                    const fieldName = field as keyof MonitorFormValues;
+                    setFieldError(fieldName, errorMessage);
+                }
+            });
+        },
+        { immediate: true, deep: true },
+    );
+
+    const isActive = ref((initialData.is_active ?? true) as boolean);
+    const type = ref<'website' | 'ip'>(
+        (initialData.type ?? 'website') as 'website' | 'ip',
+    );
+    const method = ref<'GET' | 'POST'>(
+        (initialData.method ?? 'GET') as 'GET' | 'POST',
+    );
 
     const headers = ref<HeaderPair[]>(
-        initialData?.headers && initialData.headers.length > 0
+        (initialData.headers && initialData.headers.length > 0
             ? [...initialData.headers, { key: '', value: '' }]
-            : [{ key: '', value: '' }],
+            : [{ key: '', value: '' }]) as HeaderPair[],
     );
     const parameters = ref<ParameterPair[]>(
-        initialData?.parameters && initialData.parameters.length > 0
+        (initialData.parameters && initialData.parameters.length > 0
             ? [...initialData.parameters, { key: '', value: '' }]
-            : [{ key: '', value: '' }],
+            : [{ key: '', value: '' }]) as ParameterPair[],
     );
 
     function addHeader(): void {
