@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ActionSheet, ActionSheetRoot } from '@/components/ui/action-sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +12,17 @@ import {
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { AlertCircle, CheckCircle2, Clock, Plus } from 'lucide-vue-next';
+import {
+    AlertCircle,
+    CheckCircle2,
+    Clock,
+    Eye,
+    MoreVertical,
+    Pencil,
+    Plus,
+    Trash2,
+} from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 interface Monitor {
     id: number;
@@ -40,6 +51,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const showActionSheet = ref(false);
+const actionSheetMonitor = ref<Monitor | null>(null);
+
 function formatInterval(seconds: number): string {
     if (seconds < 60) {
         return `${seconds}s`;
@@ -55,6 +69,54 @@ function deleteMonitor(id: number): void {
         router.delete(`/monitors/${id}`);
     }
 }
+
+const openActionSheet = (monitor: Monitor) => {
+    actionSheetMonitor.value = monitor;
+    showActionSheet.value = true;
+};
+
+const actionSheetButtons = computed(() => {
+    if (!actionSheetMonitor.value) {
+        return [
+            {
+                text: 'Add Monitor',
+                icon: Plus,
+                handler: () => {
+                    showActionSheet.value = false;
+                    router.visit('/monitors/create');
+                },
+            },
+        ];
+    }
+
+    return [
+        {
+            text: 'View Details',
+            icon: Eye,
+            handler: () => {
+                showActionSheet.value = false;
+                router.visit(`/monitors/${actionSheetMonitor.value!.id}`);
+            },
+        },
+        {
+            text: 'Edit Monitor',
+            icon: Pencil,
+            handler: () => {
+                showActionSheet.value = false;
+                router.visit(`/monitors/${actionSheetMonitor.value!.id}/edit`);
+            },
+        },
+        {
+            text: 'Delete Monitor',
+            icon: Trash2,
+            role: 'destructive' as const,
+            handler: () => {
+                showActionSheet.value = false;
+                deleteMonitor(actionSheetMonitor.value!.id);
+            },
+        },
+    ];
+});
 </script>
 
 <template>
@@ -71,12 +133,30 @@ function deleteMonitor(id: number): void {
                         Manage your uptime monitoring
                     </p>
                 </div>
-                <Link :href="'/monitors/create'">
-                    <Button>
-                        <Plus class="mr-2 h-4 w-4" />
-                        Add Monitor
+
+                <!-- Desktop: Show button, Mobile: Show 3-dot menu -->
+                <div class="hidden md:block">
+                    <Link :href="'/monitors/create'">
+                        <Button>
+                            <Plus class="mr-2 h-4 w-4" />
+                            Add Monitor
+                        </Button>
+                    </Link>
+                </div>
+
+                <!-- Mobile: 3-dot menu -->
+                <div class="md:hidden">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        @click="
+                            actionSheetMonitor = null;
+                            showActionSheet = true;
+                        "
+                    >
+                        <MoreVertical class="h-5 w-5" />
                     </Button>
-                </Link>
+                </div>
             </div>
 
             <div
@@ -108,35 +188,48 @@ function deleteMonitor(id: number): void {
                                     {{ monitor.url }}
                                 </CardDescription>
                             </div>
-                            <Badge
-                                :variant="
-                                    monitor.is_down
-                                        ? 'destructive'
-                                        : monitor.status === 'up'
-                                          ? 'default'
-                                          : 'secondary'
-                                "
-                            >
-                                <AlertCircle
-                                    v-if="
-                                        monitor.is_down ||
-                                        monitor.status === 'down'
+                            <div class="flex items-center gap-2">
+                                <Badge
+                                    :variant="
+                                        monitor.is_down
+                                            ? 'destructive'
+                                            : monitor.status === 'up'
+                                              ? 'default'
+                                              : 'secondary'
                                     "
-                                    class="mr-1 h-3 w-3"
-                                />
-                                <CheckCircle2
-                                    v-else-if="monitor.status === 'up'"
-                                    class="mr-1 h-3 w-3"
-                                />
-                                <Clock v-else class="mr-1 h-3 w-3" />
-                                {{
-                                    monitor.is_down
-                                        ? 'Down'
-                                        : monitor.status === 'up'
-                                          ? 'Up'
-                                          : 'Unknown'
-                                }}
-                            </Badge>
+                                >
+                                    <AlertCircle
+                                        v-if="
+                                            monitor.is_down ||
+                                            monitor.status === 'down'
+                                        "
+                                        class="mr-1 h-3 w-3"
+                                    />
+                                    <CheckCircle2
+                                        v-else-if="monitor.status === 'up'"
+                                        class="mr-1 h-3 w-3"
+                                    />
+                                    <Clock v-else class="mr-1 h-3 w-3" />
+                                    {{
+                                        monitor.is_down
+                                            ? 'Down'
+                                            : monitor.status === 'up'
+                                              ? 'Up'
+                                              : 'Unknown'
+                                    }}
+                                </Badge>
+                                <!-- Mobile: 3-dot menu -->
+                                <div class="md:hidden">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="h-8 w-8"
+                                        @click="openActionSheet(monitor)"
+                                    >
+                                        <MoreVertical class="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -188,7 +281,9 @@ function deleteMonitor(id: number): void {
                                 }}</span>
                             </div>
                         </div>
-                        <div class="mt-4 flex gap-2">
+
+                        <!-- Desktop: Show buttons -->
+                        <div class="mt-4 hidden gap-2 md:flex">
                             <Link
                                 :href="`/monitors/${monitor.id}`"
                                 class="flex-1"
@@ -214,6 +309,19 @@ function deleteMonitor(id: number): void {
                     </CardContent>
                 </Card>
             </div>
+
+            <!-- Mobile Action Sheet -->
+            <ActionSheetRoot v-model:open="showActionSheet">
+                <ActionSheet
+                    :buttons="actionSheetButtons"
+                    :header="
+                        actionSheetMonitor
+                            ? actionSheetMonitor.name
+                            : 'Monitors'
+                    "
+                    @action="showActionSheet = false"
+                />
+            </ActionSheetRoot>
         </div>
     </AppLayout>
 </template>

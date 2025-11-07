@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ActionSheet, ActionSheetRoot } from '@/components/ui/action-sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +12,14 @@ import {
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { AlertCircle, CheckCircle2, Edit, Trash2 } from 'lucide-vue-next';
+import {
+    AlertCircle,
+    CheckCircle2,
+    Edit,
+    MoreVertical,
+    Trash2,
+} from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 interface Check {
     id: number;
@@ -64,6 +72,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const showActionSheet = ref(false);
+
 function formatDuration(seconds?: number): string {
     if (!seconds) {
         return 'N/A';
@@ -83,6 +93,33 @@ function deleteMonitor(): void {
         router.delete(`/monitors/${props.monitor.id}`);
     }
 }
+
+const actionSheetButtons = computed(() => [
+    {
+        text: 'Edit Monitor',
+        icon: Edit,
+        handler: () => {
+            showActionSheet.value = false;
+            router.visit(`/monitors/${props.monitor.id}/edit`);
+        },
+    },
+    {
+        text: 'Delete Monitor',
+        icon: Trash2,
+        role: 'destructive' as const,
+        handler: () => {
+            showActionSheet.value = false;
+            deleteMonitor();
+        },
+    },
+    {
+        text: 'Cancel',
+        role: 'cancel' as const,
+        handler: () => {
+            showActionSheet.value = false;
+        },
+    },
+]);
 </script>
 
 <template>
@@ -97,7 +134,9 @@ function deleteMonitor(): void {
                     <h1 class="text-2xl font-bold">{{ monitor.name }}</h1>
                     <p class="text-muted-foreground">{{ monitor.url }}</p>
                 </div>
-                <div class="flex gap-2">
+
+                <!-- Desktop: Show buttons, Mobile: Show 3-dot menu -->
+                <div class="hidden gap-2 md:flex">
                     <Link :href="`/monitors/${monitor.id}/edit`">
                         <Button variant="outline">
                             <Edit class="mr-2 h-4 w-4" />
@@ -107,6 +146,17 @@ function deleteMonitor(): void {
                     <Button variant="destructive" @click="deleteMonitor">
                         <Trash2 class="mr-2 h-4 w-4" />
                         Delete
+                    </Button>
+                </div>
+
+                <!-- Mobile: 3-dot menu -->
+                <div class="md:hidden">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        @click="showActionSheet = true"
+                    >
+                        <MoreVertical class="h-5 w-5" />
                     </Button>
                 </div>
             </div>
@@ -272,6 +322,15 @@ function deleteMonitor(): void {
                     </div>
                 </CardContent>
             </Card>
+
+            <!-- Mobile Action Sheet -->
+            <ActionSheetRoot v-model:open="showActionSheet">
+                <ActionSheet
+                    :buttons="actionSheetButtons"
+                    :header="props.monitor.name"
+                    @action="showActionSheet = false"
+                />
+            </ActionSheetRoot>
         </div>
     </AppLayout>
 </template>
