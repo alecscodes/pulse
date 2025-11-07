@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/monitoring', [MonitoringController::class, 'edit'])->name('monitoring.edit');
     Route::patch('settings/monitoring', [MonitoringController::class, 'update'])->name('monitoring.update');
+    Route::post('settings/monitoring/test', [MonitoringController::class, 'test'])->name('monitoring.test');
 
     Route::get('settings/registration', [RegistrationController::class, 'edit'])->name('registration.edit');
     Route::patch('settings/registration', [RegistrationController::class, 'update'])->name('registration.update');
