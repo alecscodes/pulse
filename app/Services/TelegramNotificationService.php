@@ -39,10 +39,7 @@ class TelegramNotificationService
      */
     public function sendMonitorDownNotification(Monitor $monitor): bool
     {
-        $message = "?? <b>Monitor Down</b>\n\n";
-        $message .= "Name: {$monitor->name}\n";
-        $message .= "URL: {$monitor->url}\n";
-        $message .= 'Time: '.now()->format('Y-m-d H:i:s');
+        $message = "⚠️ The website {$monitor->url} appears to be down.";
 
         return $this->sendNotification($message);
     }
@@ -52,13 +49,9 @@ class TelegramNotificationService
      */
     public function sendMonitorRecoveryNotification(Monitor $monitor, MonitorDowntime $downtime): bool
     {
-        $duration = $this->formatDuration($downtime->duration_seconds ?? 0);
+        $duration = $this->formatDurationAsTime($downtime->duration_seconds ?? 0);
 
-        $message = "?? <b>Monitor Recovered</b>\n\n";
-        $message .= "Name: {$monitor->name}\n";
-        $message .= "URL: {$monitor->url}\n";
-        $message .= "Downtime: {$duration}\n";
-        $message .= 'Recovered at: '.now()->format('Y-m-d H:i:s');
+        $message = "✅ The website {$monitor->url} is back up. ⏰ It was down for approximately {$duration}.";
 
         return $this->sendNotification($message);
     }
@@ -103,5 +96,17 @@ class TelegramNotificationService
         }
 
         return implode(' ', $parts);
+    }
+
+    /**
+     * Format duration in seconds to HH:MM:SS format.
+     */
+    protected function formatDurationAsTime(int $seconds): string
+    {
+        $hours = floor($seconds / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        $secs = $seconds % 60;
+
+        return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
     }
 }
