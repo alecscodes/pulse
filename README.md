@@ -1,4 +1,4 @@
-# Pulse
+# 🫀 Pulse
 
 A personal website uptime monitoring app built with Laravel & Vue.js. Keep track of your websites, get notified when they go down, and monitor performance—all from a clean, simple dashboard.
 
@@ -21,16 +21,6 @@ cd respaldo
 # Run deployment (handles both fresh installs and updates)
 ./deploy.sh
 ```
-
-**What the script does:**
-
-- **Environment Setup**: Creates `.env` from `.env.example` if missing
-- **Interactive Prompts**: Prompts for `APP_URL` only if missing
-- **Git Updates**: Automatically pulls latest changes if in a git repository
-- **Dependencies**: Installs production dependencies (`composer install --no-dev`, `npm ci`)
-- **Build**: Compiles frontend assets (`npm run build`)
-- **Database**: Generates app key, creates SQLite database, and runs migrations
-- **Optimization**: Clears caches and optimizes the application for production
 
 **Usage:**
 
@@ -57,6 +47,16 @@ Then start the containers:
 ```bash
 docker-compose up -d
 ```
+
+**Updating via Artisan:**
+
+You can also use the Artisan command to perform updates:
+
+```bash
+php artisan git:update
+```
+
+This command will pull the latest changes and run all deployment steps (composer install, npm install, build, migrations, etc.).
 
 ### Local Development
 
@@ -184,6 +184,47 @@ composer run analyze
 
 # Frontend dev mode
 npm run dev
+```
+
+## 🔧 Artisan Commands
+
+### Git Update
+
+Perform a git update by pulling latest changes and running deployment steps:
+
+```bash
+php artisan git:update
+```
+
+This command will:
+
+- Pull latest changes from the remote repository
+- Install/update Composer dependencies
+- Install/update NPM dependencies
+- Build frontend assets
+- Run database migrations
+- Clear and optimize caches
+
+### IP Management
+
+Unban a specific IP:
+
+```bash
+php artisan ip:unban 192.168.1.100
+```
+
+Unban all IPs:
+
+```bash
+php artisan ip:unban --all
+```
+
+### Monitor Checks
+
+Manually trigger monitor checks:
+
+```bash
+php artisan monitors:check
 ```
 
 ---
