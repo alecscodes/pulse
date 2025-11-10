@@ -15,7 +15,8 @@ class PlaywrightInstallationService
 
         try {
             $script = 'require("playwright").chromium.launch({headless: true}).then(b => { b.close(); process.exit(0); }).catch(() => process.exit(1));';
-            $command = sprintf('node -e %s 2>&1', escapeshellarg($script));
+            $basePath = base_path();
+            $command = sprintf('cd %s && node -e %s 2>&1', escapeshellarg($basePath), escapeshellarg($script));
             $output = shell_exec($command);
 
             // Check if output contains error about missing browser
@@ -42,9 +43,10 @@ class PlaywrightInstallationService
         try {
             // Use --with-deps only on non-Alpine systems (Alpine uses apk, not apt-get)
             $isAlpine = file_exists('/etc/alpine-release');
+            $basePath = base_path();
             $command = $isAlpine
-                ? 'npx playwright install chromium 2>&1'
-                : 'npx playwright install --with-deps chromium 2>&1';
+                ? sprintf('cd %s && npx playwright install chromium 2>&1', escapeshellarg($basePath))
+                : sprintf('cd %s && npx playwright install --with-deps chromium 2>&1', escapeshellarg($basePath));
 
             $output = shell_exec($command);
 
