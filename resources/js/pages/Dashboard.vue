@@ -85,9 +85,12 @@ const breadcrumbs: BreadcrumbItem[] = [
 
             <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <Card
-                    v-for="monitor in monitors"
+                    v-for="(monitor, index) in monitors"
                     :key="monitor.id"
-                    class="cursor-pointer transition-shadow hover:shadow-lg"
+                    :class="[
+                        'cursor-pointer transition-shadow hover:shadow-lg',
+                        index % 3 === 1 && 'bg-muted/70',
+                    ]"
                 >
                     <Link :href="`/monitors/${monitor.id}`">
                         <CardHeader>
