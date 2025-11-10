@@ -162,16 +162,22 @@ class MonitorCheckService
 
     /**
      * Validate content using HTTP response body.
+     * Returns true only if BOTH title AND content are valid.
+     * If either fails, returns false (monitor marked as down).
      */
     private function validateWithHttpBody(string $body, Monitor $monitor): bool
     {
         $expectedTitle = trim($monitor->expected_title ?? '');
+        $expectedContent = trim($monitor->expected_content ?? '');
+        
+        // If title is expected, it must match
         $titleValid = empty($expectedTitle)
             || $this->extractTitleFromBody($body) === $expectedTitle
             || stripos($body, $expectedTitle) !== false;
 
-        $contentValid = empty($monitor->expected_content)
-            || stripos($body, $monitor->expected_content) !== false;
+        // If content is expected, it must be found in body
+        $contentValid = empty($expectedContent)
+            || stripos($body, $expectedContent) !== false;
 
         return $titleValid && $contentValid;
     }
@@ -220,9 +226,15 @@ class MonitorCheckService
                 return false;
             }
 
-            $titleValid = empty($monitor->expected_title) || trim($data['title'] ?? '') === trim($monitor->expected_title);
-            $contentValid = empty($monitor->expected_content) || ($data['hasContent'] ?? false);
+            // Validate title: must match exactly if expected
+            $expectedTitle = trim($monitor->expected_title ?? '');
+            $titleValid = empty($expectedTitle) || trim($data['title'] ?? '') === $expectedTitle;
+            
+            // Validate content: must be found if expected
+            $expectedContent = trim($monitor->expected_content ?? '');
+            $contentValid = empty($expectedContent) || ($data['hasContent'] ?? false);
 
+            
             return $titleValid && $contentValid;
         } catch (\Exception $e) {
             return false;
@@ -243,12 +255,11 @@ const config = {$configJson};
     const page = await browser.newPage();
     await page.goto(config.url, {waitUntil: 'networkidle', timeout: 30000});
     const title = await page.title();
-    const content = await page.content();
     const textContent = await page.textContent('body') || '';
     await browser.close();
     const normalize = (str) => str.replace(/\s+/g, ' ').trim().toLowerCase();
     const hasContent = config.expectedContent
-      ? normalize(textContent).includes(normalize(config.expectedContent)) || content.toLowerCase().includes(config.expectedContent.toLowerCase())
+      ? normalize(textContent).includes(normalize(config.expectedContent))
       : true;
     const result = {
       title: title || '',
