@@ -26,7 +26,7 @@ class MonitorStatusService
 
         // Perform the check
         $checkResult = $this->checkService->checkMonitor($monitor);
-        $check = $this->checkService->createCheck($monitor, $checkResult);
+        $this->checkService->createCheck($monitor, $checkResult);
 
         // If check failed, wait 3 seconds and check again
         if ($checkResult['status'] === 'down') {
@@ -50,7 +50,7 @@ class MonitorStatusService
     /**
      * Update downtime if needed (for queue jobs checking down monitors).
      */
-    public function updateDowntimeIfNeeded(Monitor $monitor, MonitorCheck $check): void
+    public function updateDowntimeIfNeeded(Monitor $monitor): void
     {
         /** @var MonitorDowntime|null $currentDowntime */
         $currentDowntime = $monitor->currentDowntime()->first();
@@ -85,7 +85,7 @@ class MonitorStatusService
 
         if (! $currentDowntime) {
             // Start new downtime
-            $downtime = MonitorDowntime::create([
+            MonitorDowntime::create([
                 'monitor_id' => $monitor->id,
                 'started_at' => now(),
                 'last_notification_at' => now(),

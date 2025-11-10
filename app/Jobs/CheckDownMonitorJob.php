@@ -48,11 +48,11 @@ class CheckDownMonitorJob implements ShouldQueue
         }
 
         $checkResult = $checkService->checkMonitor($monitor);
-        $check = $checkService->createCheck($monitor, $checkResult);
+        $checkService->createCheck($monitor, $checkResult);
 
         if ($checkResult['status'] === 'down') {
             // Still down, update downtime and reschedule
-            $statusService->updateDowntimeIfNeeded($monitor, $check);
+            $statusService->updateDowntimeIfNeeded($monitor);
 
             // Reschedule for 3 seconds later
             self::dispatch($this->monitorId)->delay(now()->addSeconds(3));
