@@ -214,7 +214,8 @@ class MonitorCheckService
 
             $configJson = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             $script = $this->getPlaywrightScript($configJson);
-            $output = trim(shell_exec('node -e '.escapeshellarg($script).' 2>/dev/null') ?: '');
+            $basePath = base_path();
+            $output = trim(shell_exec("cd {$basePath} && node -e ".escapeshellarg($script).' 2>/dev/null') ?: '');
 
             if (empty($output)) {
                 return false;
