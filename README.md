@@ -46,15 +46,7 @@ Then start the containers:
 
 ```bash
 docker-compose up -d
-```
 
-**Updating via Artisan:**
-
-You can also use the Artisan command to perform updates:
-
-```bash
-php artisan git:update
-```
 
 This command will pull the latest changes and run all deployment steps (composer install, npm install, build, migrations, etc.).
 
@@ -149,6 +141,31 @@ php artisan ip:unban --all
 ```
 
 **Note**: Banned IPs are stored in the database and cached for performance. Unbanning clears both the database and cache entries.
+
+### 🔄 Application Updates
+
+The application includes an automatic update system that allows you to update directly from the web interface.
+
+**How it works:**
+
+- When updates are available, a notification appears on the **Dashboard**
+- The notification shows how many commits you're behind
+- Click **Update Now** to pull the latest changes from the Git repository
+- The system automatically:
+  - Fetches latest changes from remote
+  - Updates dependencies (Composer/NPM) if needed
+  - Rebuilds frontend assets if needed
+  - Clears caches
+
+**Updating via Artisan:**
+
+You can also use the Artisan command to perform updates:
+
+```bash
+php artisan git:update
+```
+
+This command will pull the latest changes and run all deployment steps (composer install, npm install, build, migrations, etc.).
 
 ---
 
