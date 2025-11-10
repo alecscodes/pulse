@@ -17,7 +17,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const page = usePage();
+usePage();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -34,8 +34,6 @@ onMounted(() => {
     chatId.value = props.telegram_chat_id || '';
 });
 const isTesting = ref<boolean>(false);
-const testMessage = ref<string>('');
-const testMessageType = ref<'success' | 'error' | null>(null);
 
 const canTest = computed(() => {
     return botToken.value.trim() !== '' && chatId.value.trim() !== '';
@@ -47,8 +45,6 @@ const sendTestMessage = (): void => {
     }
 
     isTesting.value = true;
-    testMessage.value = '';
-    testMessageType.value = null;
 
     router.post(
         '/settings/monitoring/test',
@@ -58,24 +54,6 @@ const sendTestMessage = (): void => {
         },
         {
             preserveScroll: true,
-            onSuccess: () => {
-                const message = page.props.flash.message as string;
-                const success = page.props.flash.success;
-
-                if (message || success !== undefined) {
-                    testMessage.value =
-                        message ||
-                        (success
-                            ? 'Test message sent successfully!'
-                            : 'Failed to send test message.');
-                    testMessageType.value = success ? 'success' : 'error';
-                }
-            },
-            onError: (errors) => {
-                testMessage.value =
-                    errors.message || 'Failed to send test message.';
-                testMessageType.value = 'error';
-            },
             onFinish: () => {
                 isTesting.value = false;
             },
@@ -170,25 +148,6 @@ const sendTestMessage = (): void => {
 
                             <Button :disabled="processing">Save</Button>
                         </div>
-
-                        <Transition
-                            enter-active-class="transition ease-in-out"
-                            enter-from-class="opacity-0"
-                            leave-active-class="transition ease-in-out"
-                            leave-to-class="opacity-0"
-                        >
-                            <p
-                                v-show="testMessage"
-                                :class="{
-                                    'text-sm text-green-600':
-                                        testMessageType === 'success',
-                                    'text-sm text-red-600':
-                                        testMessageType === 'error',
-                                }"
-                            >
-                                {{ testMessage }}
-                            </p>
-                        </Transition>
                     </div>
                 </Form>
             </div>
