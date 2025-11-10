@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckBannedIp;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Services\IpBanService;
@@ -21,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(prepend: [
-            \App\Http\Middleware\CheckBannedIp::class,
+            CheckBannedIp::class,
         ]);
 
         $middleware->web(append: [
