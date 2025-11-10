@@ -20,6 +20,13 @@ RUN apk add --no-cache --virtual .build-deps \
     git \
     nodejs \
     npm \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    gcompat \
     && docker-php-ext-install mbstring zip pdo pdo_sqlite sockets \
     && apk del .build-deps
 

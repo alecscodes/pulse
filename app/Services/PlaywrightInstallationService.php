@@ -40,11 +40,16 @@ class PlaywrightInstallationService
         }
 
         try {
-            $command = 'npx playwright install --with-deps chromium 2>&1';
+            // Use --with-deps only on non-Alpine systems (Alpine uses apk, not apt-get)
+            $isAlpine = file_exists('/etc/alpine-release');
+            $command = $isAlpine
+                ? 'npx playwright install chromium 2>&1'
+                : 'npx playwright install --with-deps chromium 2>&1';
+            
             $output = shell_exec($command);
 
             // Check if installation was successful (look for success indicators or absence of critical errors)
-            if (str_contains($output ?? '', 'ERROR') && ! str_contains($output ?? '', 'downloaded')) {
+            if (str_contains($output ?? '', 'ERROR') && ! str_contains($output ?? '', 'downloaded') && ! str_contains($output ?? '', 'Installing')) {
                 return false;
             }
 

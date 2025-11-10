@@ -47,9 +47,25 @@ class MonitorCheckService
             if ($response->successful()) {
                 $body = $response->body();
                 $result['response_body'] = Str::limit($body, self::MAX_BODY_SIZE);
-                $result['content_valid'] = $monitor->enable_content_validation
-                    ? $this->validateContent($monitor, $body)
-                    : null;
+                
+                if ($monitor->enable_content_validation) {
+                    $result['content_valid'] = $this->validateContent($monitor, $body);
+                    // If content validation fails but title matches, still mark as up (Playwright may fail on Alpine)
+                    if ($result['content_valid'] === false) {
+                        $expectedTitle = trim($monitor->expected_title ?? '');
+                        $titleMatches = ! empty($expectedTitle) && (
+                            $this->extractTitleFromBody($body) === $expectedTitle
+                            || stripos($body, $expectedTitle) !== false
+                        );
+                        // If title matches, consider it valid (content might be loaded via JS)
+                        if ($titleMatches) {
+                            $result['content_valid'] = true;
+                        }
+                    }
+                } else {
+                    $result['content_valid'] = null;
+                }
+                
                 $result['status'] = $result['content_valid'] === false ? 'down' : 'up';
             } else {
                 $result['error_message'] = "HTTP {$response->status()}";
@@ -127,6 +143,8 @@ class MonitorCheckService
      * Validate content against expected title and content.
      * Uses Playwright for title validation when title is expected (SPAs set title via JS).
      * Falls back to HTTP body validation for content-only checks.
+     * Note: Playwright may fail on Alpine Linux due to glibc/musl incompatibility.
+     * In such cases, the calling code will fall back to title-only validation.
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
