@@ -43,7 +43,12 @@ cd pulse
 ./deploy.sh
 ```
 
-The `deploy.sh` script automatically sets up a cron job to run the Laravel scheduler every minute.
+The `deploy.sh` script automatically sets up cron jobs for:
+
+- Laravel scheduler (runs every minute)
+- Queue worker auto-start (checks every minute, starts if not running)
+
+**Note:** The queue worker must be running for down monitors to be checked every 3 seconds.
 
 ### 💻 Local Development
 

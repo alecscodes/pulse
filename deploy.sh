@@ -123,5 +123,18 @@ else
     log "Laravel scheduler cron job added successfully"
 fi
 
+# Setup queue worker auto-start via cron (only if not already running)
+log "Setting up queue worker auto-start..."
+QUEUE_CRON_ENTRY="*/1 * * * * cd $PROJECT_DIR && pgrep -f 'artisan queue:work' > /dev/null || nohup $PHP_PATH artisan queue:work --tries=3 --timeout=90 --sleep=3 > storage/logs/queue-worker.log 2>&1 &"
+QUEUE_CRON_FILE=$(crontab -l 2>/dev/null || echo "")
+
+if echo "$QUEUE_CRON_FILE" | grep -q "artisan queue:work"; then
+    log "Queue worker cron job already exists"
+else
+    (crontab -l 2>/dev/null || echo ""; echo "$QUEUE_CRON_ENTRY") | crontab -
+    log "Queue worker auto-start cron job added successfully"
+fi
+
 log "Deployment completed successfully! 🚀"
+log "Queue worker will auto-start if not running (checked every minute)"
 
