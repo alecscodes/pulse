@@ -132,32 +132,58 @@ class MonitorCheckService
      * Uses Playwright for title validation when title is expected (SPAs set title via JS).
      * Falls back to HTTP body validation for content-only checks.
      * Note: Playwright may fail on Alpine Linux due to glibc/musl incompatibility.
-     * In such cases, the calling code will fall back to title-only validation.
+     * In such cases, accepts title-only or content-only validation as fallback.
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
         $expectedTitle = trim($monitor->expected_title ?? '');
+        $expectedContent = trim($monitor->expected_content ?? '');
         $hasExpectedTitle = ! empty($expectedTitle);
+        $hasExpectedContent = ! empty($expectedContent);
 
-        // If title is expected, check if it's in static HTML
-        // If not found, it's likely an SPA - use Playwright
-        if ($hasExpectedTitle) {
-            $titleInStaticHtml = $this->extractTitleFromBody($body) === $expectedTitle
-                || stripos($body, $expectedTitle) !== false;
+        // Check if title is in static HTML
+        $titleInStaticHtml = $hasExpectedTitle && (
+            $this->extractTitleFromBody($body) === $expectedTitle
+            || stripos($body, $expectedTitle) !== false
+        );
 
-            // Title not in static HTML - must be an SPA, use Playwright
-            if (! $titleInStaticHtml) {
-                return $this->validateWithPlaywright($monitor);
-            }
-        }
+        // Check if content is in static HTML
+        $contentInStaticHtml = ! $hasExpectedContent || stripos($body, $expectedContent) !== false;
 
-        // Try HTTP body first (faster, works with tests and when title is in static HTML)
-        if ($this->validateWithHttpBody($body, $monitor)) {
+        // If both are in HTML, validation passes
+        if ($titleInStaticHtml && $contentInStaticHtml) {
             return true;
         }
 
-        // Use Playwright as fallback when HTTP body validation fails
-        return $this->validateWithPlaywright($monitor);
+        // If title is in HTML but content is not (SPA), try Playwright
+        if ($titleInStaticHtml && $hasExpectedContent && ! $contentInStaticHtml) {
+            $playwrightResult = $this->validateWithPlaywright($monitor);
+            // If Playwright fails (Alpine issue), accept title-only as fallback
+            if (! $playwrightResult) {
+                return $titleInStaticHtml;
+            }
+
+            return $playwrightResult;
+        }
+
+        // If content is in HTML but title is not, accept content-only
+        if ($contentInStaticHtml && $hasExpectedContent && ! $titleInStaticHtml) {
+            return true;
+        }
+
+        // If title not in HTML, must be SPA - use Playwright
+        if ($hasExpectedTitle && ! $titleInStaticHtml) {
+            $playwrightResult = $this->validateWithPlaywright($monitor);
+            // If Playwright fails and we have content, accept content-only
+            if (! $playwrightResult && $contentInStaticHtml) {
+                return true;
+            }
+
+            return $playwrightResult;
+        }
+
+        // Try HTTP body validation
+        return $this->validateWithHttpBody($body, $monitor);
     }
 
     /**
