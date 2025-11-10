@@ -50,18 +50,6 @@ class MonitorCheckService
                 
                 if ($monitor->enable_content_validation) {
                     $result['content_valid'] = $this->validateContent($monitor, $body);
-                    // If content validation fails but title matches, still mark as up (Playwright may fail on Alpine)
-                    if ($result['content_valid'] === false) {
-                        $expectedTitle = trim($monitor->expected_title ?? '');
-                        $titleMatches = ! empty($expectedTitle) && (
-                            $this->extractTitleFromBody($body) === $expectedTitle
-                            || stripos($body, $expectedTitle) !== false
-                        );
-                        // If title matches, consider it valid (content might be loaded via JS)
-                        if ($titleMatches) {
-                            $result['content_valid'] = true;
-                        }
-                    }
                 } else {
                     $result['content_valid'] = null;
                 }
