@@ -171,7 +171,7 @@ const actionSheetButtons = computed(() => [
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">
-                <Card>
+                <Card class="self-start">
                     <CardHeader>
                         <CardTitle>Monitor Details</CardTitle>
                     </CardHeader>
@@ -221,61 +221,64 @@ const actionSheetButtons = computed(() => [
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Checks</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div
+                <div>
+                    <Card>
+                        <CardHeader class="flex items-center">
+                            <CardTitle>Recent Checks</CardTitle>
+                        </CardHeader>
+                        <CardContent
                             v-if="
                                 !monitor.checks || monitor.checks.length === 0
                             "
-                            class="text-sm text-muted-foreground"
                         >
-                            No checks yet
-                        </div>
-                        <div v-else class="space-y-2">
-                            <div
-                                v-for="check in monitor.checks.slice(0, 10)"
-                                :key="check.id"
-                                class="flex items-center justify-between rounded-md border p-2 text-sm"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <CheckCircle2
-                                        v-if="check.status === 'up'"
-                                        class="h-4 w-4 text-green-500"
-                                    />
-                                    <AlertCircle
-                                        v-else
-                                        class="h-4 w-4 text-red-500"
-                                    />
-                                    <span class="font-medium">{{
-                                        check.status === 'up' ? 'Up' : 'Down'
-                                    }}</span>
-                                    <span
-                                        v-if="check.response_time"
-                                        class="text-muted-foreground"
-                                    >
-                                        ({{ check.response_time }}ms)
-                                    </span>
-                                    <span
-                                        v-if="check.status_code"
-                                        class="text-muted-foreground"
-                                    >
-                                        [{{ check.status_code }}]
-                                    </span>
-                                </div>
-                                <span class="text-xs text-muted-foreground">
-                                    {{
-                                        new Date(
-                                            check.checked_at,
-                                        ).toLocaleString()
-                                    }}
+                            <div class="text-sm text-muted-foreground">
+                                No checks yet
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div
+                        v-if="monitor.checks && monitor.checks.length > 0"
+                        class="mt-2 space-y-2 px-2"
+                    >
+                        <div
+                            v-for="check in monitor.checks.slice(0, 10)"
+                            :key="check.id"
+                            class="flex items-center justify-between rounded-md border p-2 text-sm"
+                        >
+                            <div class="flex items-center gap-2">
+                                <CheckCircle2
+                                    v-if="check.status === 'up'"
+                                    class="h-4 w-4 text-green-500"
+                                />
+                                <AlertCircle
+                                    v-else
+                                    class="h-4 w-4 text-red-500"
+                                />
+                                <span class="font-medium">{{
+                                    check.status === 'up' ? 'Up' : 'Down'
+                                }}</span>
+                                <span
+                                    v-if="check.response_time"
+                                    class="text-muted-foreground"
+                                >
+                                    ({{ check.response_time }}ms)
+                                </span>
+                                <span
+                                    v-if="check.status_code"
+                                    class="text-muted-foreground"
+                                >
+                                    [{{ check.status_code }}]
                                 </span>
                             </div>
+                            <span class="text-xs text-muted-foreground">
+                                {{
+                                    new Date(check.checked_at).toLocaleString()
+                                }}
+                            </span>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
 
             <Card>
