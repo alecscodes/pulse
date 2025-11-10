@@ -61,7 +61,7 @@ class TelegramNotificationService
      */
     public function sendMonitorStillDownNotification(Monitor $monitor, MonitorDowntime $downtime): bool
     {
-        $duration = $this->formatDurationAsTime((int) now()->diffInSeconds($downtime->started_at));
+        $duration = $this->formatDurationAsTime((int) $downtime->started_at->diffInSeconds(now()));
 
         $message = "⚠️ The website {$monitor->url} is still down. ⏰ It has been down for approximately {$duration}.";
 
@@ -99,6 +99,7 @@ class TelegramNotificationService
      */
     protected function formatDurationAsTime(int $seconds): string
     {
+        $seconds = abs($seconds);
         $hours = floor($seconds / 3600);
         $minutes = floor(($seconds % 3600) / 60);
         $secs = $seconds % 60;
