@@ -125,16 +125,32 @@ class MonitorCheckService
 
     /**
      * Validate content against expected title and content.
-     * Uses HTTP response body first, then Playwright for SPAs.
+     * Uses Playwright for title validation when title is expected (SPAs set title via JS).
+     * Falls back to HTTP body validation for content-only checks.
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
-        // Try HTTP body first (faster, works with tests)
+        $expectedTitle = trim($monitor->expected_title ?? '');
+        $hasExpectedTitle = ! empty($expectedTitle);
+
+        // If title is expected, check if it's in static HTML
+        // If not found, it's likely an SPA - use Playwright
+        if ($hasExpectedTitle) {
+            $titleInStaticHtml = $this->extractTitleFromBody($body) === $expectedTitle
+                || stripos($body, $expectedTitle) !== false;
+
+            // Title not in static HTML - must be an SPA, use Playwright
+            if (! $titleInStaticHtml) {
+                return $this->validateWithPlaywright($monitor);
+            }
+        }
+
+        // Try HTTP body first (faster, works with tests and when title is in static HTML)
         if ($this->validateWithHttpBody($body, $monitor)) {
             return true;
         }
 
-        // Use Playwright for SPAs or when HTTP body validation fails
+        // Use Playwright as fallback when HTTP body validation fails
         return $this->validateWithPlaywright($monitor);
     }
 
@@ -143,9 +159,10 @@ class MonitorCheckService
      */
     private function validateWithHttpBody(string $body, Monitor $monitor): bool
     {
-        $titleValid = empty($monitor->expected_title)
-            || $this->extractTitleFromBody($body) === trim($monitor->expected_title)
-            || strpos($body, trim($monitor->expected_title)) !== false;
+        $expectedTitle = trim($monitor->expected_title ?? '');
+        $titleValid = empty($expectedTitle)
+            || $this->extractTitleFromBody($body) === $expectedTitle
+            || stripos($body, $expectedTitle) !== false;
 
         $contentValid = empty($monitor->expected_content)
             || stripos($body, $monitor->expected_content) !== false;
@@ -166,6 +183,7 @@ class MonitorCheckService
 
         return '';
     }
+
 
     /**
      * Validate content using Playwright.
@@ -217,14 +235,14 @@ const config = {$configJson};
   try {
     const browser = await chromium.launch({headless: true, args: ['--no-sandbox']});
     const page = await browser.newPage();
-    await page.goto(config.url, {waitUntil: 'networkidle', timeout: 10000});
+    await page.goto(config.url, {waitUntil: 'networkidle', timeout: 30000});
     const title = await page.title();
     const content = await page.content();
     const textContent = await page.textContent('body') || '';
     await browser.close();
-    const normalize = (str) => str.replace(/\s+/g, ' ').trim();
+    const normalize = (str) => str.replace(/\s+/g, ' ').trim().toLowerCase();
     const hasContent = config.expectedContent
-      ? normalize(textContent).includes(normalize(config.expectedContent)) || content.includes(config.expectedContent)
+      ? normalize(textContent).includes(normalize(config.expectedContent)) || content.toLowerCase().includes(config.expectedContent.toLowerCase())
       : true;
     const result = {
       title: title || '',
@@ -232,7 +250,7 @@ const config = {$configJson};
     };
     console.log(JSON.stringify(result));
   } catch(e) {
-    console.log(JSON.stringify({title: '', hasContent: false}));
+    console.log(JSON.stringify({title: '', hasContent: false, error: e.message}));
     process.exit(1);
   }
 })();
