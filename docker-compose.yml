@@ -50,6 +50,22 @@ services:
     networks:
       - app-network
 
+  queue:
+    build:
+      context: .
+      args:
+        USER_ID: ${USER_ID:-82}
+        GROUP_ID: ${GROUP_ID:-82}
+    container_name: pulse_queue
+    restart: unless-stopped
+    entrypoint: ['/queue-entrypoint.sh']
+    volumes:
+      - .:/var/www
+    depends_on:
+      - app
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge

@@ -29,7 +29,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www
 COPY . .
 
-COPY docker/entrypoint.sh docker/scheduler-entrypoint.sh docker/web-entrypoint.sh /
-RUN chmod +x /entrypoint.sh /scheduler-entrypoint.sh /web-entrypoint.sh
+COPY docker/entrypoint.sh docker/scheduler-entrypoint.sh docker/web-entrypoint.sh docker/queue-entrypoint.sh /
+RUN chmod +x /entrypoint.sh /scheduler-entrypoint.sh /web-entrypoint.sh /queue-entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

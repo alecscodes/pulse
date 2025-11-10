@@ -188,6 +188,28 @@ class MonitorStatusService
                 return $secondsSinceLastCheck >= $monitor->check_interval;
             });
 
+        // Re-dispatch queue jobs for monitors with active downtime that haven't been checked recently
+        // This ensures monitors continue to be checked even if queue jobs were lost
+        Monitor::where('is_active', true)
+            ->whereHas('downtimes', function ($query) {
+                $query->whereNull('ended_at');
+            })
+            ->with(['checks' => function ($query) {
+                $query->latest('checked_at')->limit(1);
+            }])
+            ->get()
+            ->each(function (Monitor $monitor) {
+                /** @var MonitorCheck|null $latestCheck */
+                $latestCheck = $monitor->checks->first();
+
+                // If no recent check (more than 10 seconds ago), re-dispatch queue job
+                if (! $latestCheck || abs(now()->diffInSeconds($latestCheck->checked_at)) > 10) {
+                    if (! app()->environment('testing')) {
+                        CheckDownMonitorJob::dispatch($monitor->id)->delay(now()->addSeconds(3));
+                    }
+                }
+            });
+
         $monitors->chunk(10)
             ->each(function (\Illuminate\Database\Eloquent\Collection $monitors) {
                 foreach ($monitors as $monitor) {
