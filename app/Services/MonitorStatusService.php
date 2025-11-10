@@ -122,6 +122,13 @@ class MonitorStatusService
                     return true; // Never checked
                 }
 
+                // For monitors with 60-second or less intervals, always check when scheduler runs
+                // This ensures we never miss a check, even if it means checking twice in a minute
+                if ($monitor->check_interval <= 60) {
+                    return true;
+                }
+
+                // For longer intervals, check if enough time has passed
                 $secondsSinceLastCheck = abs(now()->diffInSeconds($latestCheck->checked_at));
 
                 return $secondsSinceLastCheck >= $monitor->check_interval;
