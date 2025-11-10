@@ -183,7 +183,9 @@ test('sendMonitorStillDownNotification sends correct message', function () {
     expect($service->sendMonitorStillDownNotification($monitor, $downtime))->toBeTrue();
 
     Http::assertSent(function ($request) {
-        return str_contains($request->data()['text'], 'Monitor Still Down')
-            && str_contains($request->data()['text'], 'Test Monitor');
+        $text = $request->data()['text'];
+
+        return str_contains($text, '⚠️ The website https://example.com is still down.')
+            && str_contains($text, '⏰ It has been down for approximately');
     });
 });

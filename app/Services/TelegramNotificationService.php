@@ -61,13 +61,9 @@ class TelegramNotificationService
      */
     public function sendMonitorStillDownNotification(Monitor $monitor, MonitorDowntime $downtime): bool
     {
-        $duration = $this->formatDuration((int) now()->diffInSeconds($downtime->started_at));
+        $duration = $this->formatDurationAsTime((int) now()->diffInSeconds($downtime->started_at));
 
-        $message = "?? <b>Monitor Still Down</b>\n\n";
-        $message .= "Name: {$monitor->name}\n";
-        $message .= "URL: {$monitor->url}\n";
-        $message .= "Downtime: {$duration}\n";
-        $message .= 'Time: '.now()->format('Y-m-d H:i:s');
+        $message = "⚠️ The website {$monitor->url} is still down. ⏰ It has been down for approximately {$duration}.";
 
         return $this->sendNotification($message);
     }
