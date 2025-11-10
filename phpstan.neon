@@ -7,7 +7,6 @@ parameters:
         - database/
 
     # Level 5 provides good balance for Laravel projects
-    # Level 6+ requires more detailed type annotations
     level: 5
 
     # Report unmatched ignored errors (useful for cleanup)
