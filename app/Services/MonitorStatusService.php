@@ -122,7 +122,7 @@ class MonitorStatusService
                     return true; // Never checked
                 }
 
-                $secondsSinceLastCheck = now()->diffInSeconds($latestCheck->checked_at);
+                $secondsSinceLastCheck = abs(now()->diffInSeconds($latestCheck->checked_at));
 
                 return $secondsSinceLastCheck >= $monitor->check_interval;
             })
