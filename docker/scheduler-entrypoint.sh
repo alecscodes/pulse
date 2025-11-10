@@ -13,6 +13,10 @@ DB_FILE="/var/www/database/database.sqlite"
 [ ! -f "${DB_FILE}" ] && touch "${DB_FILE}" && set_ownership "${DB_FILE}" && chmod 664 "${DB_FILE}"
 
 php artisan migrate --force
+
+# Ensure Playwright browsers are installed (needed for monitor checks)
+php artisan playwright:install --quiet || true
+
 echo "Starting Laravel scheduler..."
 exec php artisan schedule:work --no-interaction
 

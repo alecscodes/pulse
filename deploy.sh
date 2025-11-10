@@ -101,6 +101,10 @@ npm ci
 log "Building assets..."
 npm run build
 
+# Ensure Playwright browsers are installed
+log "Ensuring Playwright browsers are installed..."
+php artisan playwright:install --quiet || warn "Playwright browser installation skipped or failed"
+
 # Clear and optimize
 log "Clearing caches..."
 php artisan optimize:clear
