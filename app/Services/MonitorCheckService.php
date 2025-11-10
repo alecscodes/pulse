@@ -220,10 +220,15 @@ const config = {$configJson};
     await page.goto(config.url, {waitUntil: 'networkidle', timeout: 10000});
     const title = await page.title();
     const content = await page.content();
+    const textContent = await page.textContent('body') || '';
     await browser.close();
+    const normalize = (str) => str.replace(/\s+/g, ' ').trim();
+    const hasContent = config.expectedContent
+      ? normalize(textContent).includes(normalize(config.expectedContent)) || content.includes(config.expectedContent)
+      : true;
     const result = {
       title: title || '',
-      hasContent: config.expectedContent ? content.includes(config.expectedContent) : true
+      hasContent: hasContent
     };
     console.log(JSON.stringify(result));
   } catch(e) {
