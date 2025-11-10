@@ -47,13 +47,13 @@ class MonitorCheckService
             if ($response->successful()) {
                 $body = $response->body();
                 $result['response_body'] = Str::limit($body, self::MAX_BODY_SIZE);
-                
+
                 if ($monitor->enable_content_validation) {
                     $result['content_valid'] = $this->validateContent($monitor, $body);
                 } else {
                     $result['content_valid'] = null;
                 }
-                
+
                 $result['status'] = $result['content_valid'] === false ? 'down' : 'up';
             } else {
                 $result['error_message'] = "HTTP {$response->status()}";
@@ -169,7 +169,7 @@ class MonitorCheckService
     {
         $expectedTitle = trim($monitor->expected_title ?? '');
         $expectedContent = trim($monitor->expected_content ?? '');
-        
+
         // If title is expected, it must match
         $titleValid = empty($expectedTitle)
             || $this->extractTitleFromBody($body) === $expectedTitle
@@ -195,7 +195,6 @@ class MonitorCheckService
 
         return '';
     }
-
 
     /**
      * Validate content using Playwright.
@@ -229,12 +228,11 @@ class MonitorCheckService
             // Validate title: must match exactly if expected
             $expectedTitle = trim($monitor->expected_title ?? '');
             $titleValid = empty($expectedTitle) || trim($data['title'] ?? '') === $expectedTitle;
-            
+
             // Validate content: must be found if expected
             $expectedContent = trim($monitor->expected_content ?? '');
             $contentValid = empty($expectedContent) || ($data['hasContent'] ?? false);
 
-            
             return $titleValid && $contentValid;
         } catch (\Exception $e) {
             return false;

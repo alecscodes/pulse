@@ -45,7 +45,7 @@ class PlaywrightInstallationService
             $command = $isAlpine
                 ? 'npx playwright install chromium 2>&1'
                 : 'npx playwright install --with-deps chromium 2>&1';
-            
+
             $output = shell_exec($command);
 
             // Check if installation was successful (look for success indicators or absence of critical errors)
@@ -89,6 +89,4 @@ class PlaywrightInstallationService
 
         return false;
     }
-
 }
-

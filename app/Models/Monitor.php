@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon $updated_at
  * @property \Illuminate\Database\Eloquent\Collection<int, MonitorCheck> $checks
  * @property \Illuminate\Database\Eloquent\Collection<int, MonitorDowntime> $downtimes
+ * @property int|null $has_active_downtime
  */
 class Monitor extends Model
 {
