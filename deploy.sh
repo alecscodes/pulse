@@ -109,5 +109,19 @@ log "Optimizing application..."
 php artisan optimize
 composer dump-autoload --optimize --no-interaction
 
+# Setup Laravel scheduler cron job
+log "Setting up Laravel scheduler cron job..."
+PROJECT_DIR=$(pwd)
+PHP_PATH=$(which php 2>/dev/null || echo "php")
+CRON_ENTRY="* * * * * cd $PROJECT_DIR && $PHP_PATH artisan schedule:run >> /dev/null 2>&1"
+CRON_FILE=$(crontab -l 2>/dev/null || echo "")
+
+if echo "$CRON_FILE" | grep -q "artisan schedule:run"; then
+    log "Laravel scheduler cron job already exists"
+else
+    (crontab -l 2>/dev/null || echo ""; echo "$CRON_ENTRY") | crontab -
+    log "Laravel scheduler cron job added successfully"
+fi
+
 log "Deployment completed successfully! 🚀"
 

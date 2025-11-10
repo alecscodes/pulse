@@ -43,6 +43,8 @@ cd pulse
 ./deploy.sh
 ```
 
+The `deploy.sh` script automatically sets up a cron job to run the Laravel scheduler every minute.
+
 ### 💻 Local Development
 
 For local development without Docker:
@@ -142,7 +144,7 @@ Getting started with monitoring is simple:
    - Custom headers
    - Query parameters
    - Content validation rules
-4. Monitors run automatically every minute via the scheduler
+4. Monitors run automatically every minute via the Laravel scheduler
 
 ---
 
