@@ -185,7 +185,15 @@ const actionSheetButtons = computed(() => {
                                     </Link>
                                 </CardTitle>
                                 <CardDescription class="mt-1">
-                                    {{ monitor.url }}
+                                    <a
+                                        :href="monitor.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="hover:underline"
+                                        @click.stop
+                                    >
+                                        {{ monitor.url }}
+                                    </a>
                                 </CardDescription>
                             </div>
                             <div class="flex items-center gap-2">

@@ -132,7 +132,16 @@ const actionSheetButtons = computed(() => [
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold">{{ monitor.name }}</h1>
-                    <p class="text-muted-foreground">{{ monitor.url }}</p>
+                    <p class="text-muted-foreground">
+                        <a
+                            :href="monitor.url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="hover:underline"
+                        >
+                            {{ monitor.url }}
+                        </a>
+                    </p>
                 </div>
 
                 <!-- Desktop: Show buttons, Mobile: Show 3-dot menu -->

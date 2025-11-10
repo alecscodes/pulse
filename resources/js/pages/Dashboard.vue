@@ -96,9 +96,17 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     <CardTitle class="text-lg">{{
                                         monitor.name
                                     }}</CardTitle>
-                                    <CardDescription class="mt-1">{{
-                                        monitor.url
-                                    }}</CardDescription>
+                                    <CardDescription class="mt-1">
+                                        <a
+                                            :href="monitor.url"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="hover:underline"
+                                            @click.stop
+                                        >
+                                            {{ monitor.url }}
+                                        </a>
+                                    </CardDescription>
                                 </div>
                                 <Badge
                                     :variant="
