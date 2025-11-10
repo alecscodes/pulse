@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { GITHUB_REPO_URL } from '@/lib/constants';
-import { dashboard, login } from '@/routes';
+import { dashboard, login, register } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import { Activity, AlertCircle, Github } from 'lucide-vue-next';
+
+withDefaults(
+    defineProps<{
+        canRegister: boolean;
+    }>(),
+    {
+        canRegister: true,
+    },
+);
 </script>
 
 <template>
@@ -82,11 +91,17 @@ import { Activity, AlertCircle, Github } from 'lucide-vue-next';
                         </Button>
                     </a>
 
-                    <Link v-if="!$page.props.auth.user" :href="login()">
-                        <Button variant="outline" class="w-full sm:w-auto">
-                            Sign In
-                        </Button>
-                    </Link>
+                    <template v-if="!$page.props.auth.user">
+                        <Link :href="login()">
+                            <Button variant="outline" class="w-full sm:w-auto">
+                                Sign In
+                            </Button>
+                        </Link>
+
+                        <Link v-if="canRegister" :href="register()">
+                            <Button class="w-full sm:w-auto"> Sign Up </Button>
+                        </Link>
+                    </template>
 
                     <Link v-else :href="dashboard()">
                         <Button variant="outline" class="w-full sm:w-auto">

@@ -2,15 +2,19 @@
 
 use App\Http\Controllers\MonitorController;
 use App\Models\Monitor;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Laravel\Fortify\Features;
 
 Route::get('/', function () {
     if (auth()->check()) {
         return redirect()->route('dashboard');
     }
 
-    return Inertia::render('Welcome');
+    return Inertia::render('Welcome', [
+        'canRegister' => Features::enabled(Features::registration()) && Setting::isRegistrationAllowed(),
+    ]);
 })->name('home');
 
 Route::get('dashboard', function () {
