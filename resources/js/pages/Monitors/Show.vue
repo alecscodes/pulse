@@ -15,6 +15,8 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import {
     AlertCircle,
     CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
     Edit,
     MoreVertical,
     Trash2,
@@ -73,6 +75,24 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const showActionSheet = ref(false);
+const downtimePage = ref(1);
+const downtimeItemsPerPage = 10;
+
+const paginatedDowntimes = computed(() => {
+    if (!props.monitor.downtimes || props.monitor.downtimes.length === 0) {
+        return [];
+    }
+    const start = (downtimePage.value - 1) * downtimeItemsPerPage;
+    const end = start + downtimeItemsPerPage;
+    return props.monitor.downtimes.slice(start, end);
+});
+
+const downtimeTotalPages = computed(() => {
+    if (!props.monitor.downtimes || props.monitor.downtimes.length === 0) {
+        return 0;
+    }
+    return Math.ceil(props.monitor.downtimes.length / downtimeItemsPerPage);
+});
 
 function formatDuration(seconds?: number): string {
     if (!seconds) {
@@ -283,7 +303,11 @@ const actionSheetButtons = computed(() => [
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Downtime History</CardTitle>
+                    <CardTitle
+                        >Downtime History ({{
+                            monitor.downtimes?.length
+                        }})</CardTitle
+                    >
                     <CardDescription
                         >Past incidents when the monitor was
                         down</CardDescription
@@ -298,38 +322,69 @@ const actionSheetButtons = computed(() => [
                     >
                         No downtime recorded
                     </div>
-                    <div v-else class="space-y-2">
-                        <div
-                            v-for="downtime in monitor.downtimes"
-                            :key="downtime.id"
-                            class="flex items-center justify-between rounded-md border p-3"
-                        >
-                            <div>
-                                <p class="font-medium">
+                    <div v-else>
+                        <div class="space-y-2">
+                            <div
+                                v-for="downtime in paginatedDowntimes"
+                                :key="downtime.id"
+                                class="flex items-center justify-between rounded-md border p-3"
+                            >
+                                <div>
+                                    <p class="font-medium">
+                                        {{
+                                            new Date(
+                                                downtime.started_at,
+                                            ).toLocaleString()
+                                        }}
+                                    </p>
+                                    <p
+                                        v-if="downtime.ended_at"
+                                        class="text-sm text-muted-foreground"
+                                    >
+                                        Ended:
+                                        {{
+                                            new Date(
+                                                downtime.ended_at,
+                                            ).toLocaleString()
+                                        }}
+                                    </p>
+                                    <p v-else class="text-sm text-green-600">
+                                        Currently Down
+                                    </p>
+                                </div>
+                                <Badge variant="destructive">
                                     {{
-                                        new Date(
-                                            downtime.started_at,
-                                        ).toLocaleString()
+                                        formatDuration(
+                                            downtime.duration_seconds,
+                                        )
                                     }}
-                                </p>
-                                <p
-                                    v-if="downtime.ended_at"
-                                    class="text-sm text-muted-foreground"
-                                >
-                                    Ended:
-                                    {{
-                                        new Date(
-                                            downtime.ended_at,
-                                        ).toLocaleString()
-                                    }}
-                                </p>
-                                <p v-else class="text-sm text-green-600">
-                                    Currently Down
-                                </p>
+                                </Badge>
                             </div>
-                            <Badge variant="destructive">
-                                {{ formatDuration(downtime.duration_seconds) }}
-                            </Badge>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div
+                            v-if="downtimeTotalPages > 1"
+                            class="mt-4 flex items-center justify-center gap-2"
+                        >
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                :disabled="downtimePage === 1"
+                                @click="downtimePage--"
+                            >
+                                <ChevronLeft class="h-4 w-4" />
+                                Previous
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                :disabled="downtimePage === downtimeTotalPages"
+                                @click="downtimePage++"
+                            >
+                                Next
+                                <ChevronRight class="ml-2 h-4 w-4" />
+                            </Button>
                         </div>
                     </div>
                 </CardContent>
