@@ -242,7 +242,7 @@ const actionSheetButtons = computed(() => [
                         class="mt-2 space-y-2 px-2"
                     >
                         <div
-                            v-for="check in monitor.checks.slice(0, 10)"
+                            v-for="check in monitor.checks.slice(0, 5)"
                             :key="check.id"
                             class="flex items-center justify-between rounded-md border p-2 text-sm"
                         >
