@@ -224,7 +224,7 @@ class MonitorCheckService
     private function getPlaywrightScript(string $configJson): string
     {
         return <<<SCRIPT
-const {chromium} = require('playwright');
+import { chromium } from 'playwright';
 const config = {$configJson};
 (async () => {
   try {
@@ -234,17 +234,13 @@ const config = {$configJson};
     const title = await page.title();
     const textContent = await page.textContent('body') || '';
     await browser.close();
-    const normalize = (str) => str.replace(/\s+/g, ' ').trim().toLowerCase();
-    const hasContent = config.expectedContent
-      ? normalize(textContent).includes(normalize(config.expectedContent))
-      : true;
     const result = {
       title: title || '',
-      hasContent: hasContent
+      textContent: textContent || '',
     };
     console.log(JSON.stringify(result));
   } catch(e) {
-    console.log(JSON.stringify({title: '', hasContent: false, error: e.message}));
+    console.log(JSON.stringify({title: '', textContent: '', error: e.message}));
     process.exit(1);
   }
 })();
