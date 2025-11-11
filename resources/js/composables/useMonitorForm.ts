@@ -58,12 +58,10 @@ export const monitorFormSchema = toTypedSchema(
                 .max(3600, 'Check interval must not exceed 3600 seconds'),
         })
         .refine(
-            (data) => {
-                if (!data.enable_content_validation) {
-                    return true;
-                }
-                return !!data.expected_title || !!data.expected_content;
-            },
+            (data) =>
+                !data.enable_content_validation ||
+                !!data.expected_title ||
+                !!data.expected_content,
             {
                 message:
                     'Expected title or content is required when content validation is enabled',

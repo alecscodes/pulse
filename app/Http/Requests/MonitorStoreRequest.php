@@ -33,11 +33,20 @@ class MonitorStoreRequest extends FormRequest
             'parameters.*.key' => ['required_with:parameters', 'string'],
             'parameters.*.value' => ['required_with:parameters', 'string'],
             'enable_content_validation' => ['boolean'],
-            'expected_title' => ['nullable', 'required_if:enable_content_validation,true', 'string', 'max:255'],
-            'expected_content' => ['nullable', 'required_if:enable_content_validation,true', 'string'],
+            'expected_title' => ['nullable', 'string', 'max:255'],
+            'expected_content' => ['nullable', 'string'],
             'is_active' => ['boolean'],
             'check_interval' => ['required', 'integer', 'min:30', 'max:3600'],
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->sometimes('expected_title', 'required_without:expected_content', fn ($input) => ! empty($input->enable_content_validation));
+        $validator->sometimes('expected_content', 'required_without:expected_title', fn ($input) => ! empty($input->enable_content_validation));
     }
 
     /**
