@@ -226,7 +226,7 @@ class MonitorCheckService
     private function getPuppeteerScript(string $configJson): string
     {
         return <<<SCRIPT
-const puppeteer = require('puppeteer-core');
+import puppeteer from 'puppeteer-core';
 const config = {$configJson};
 (async () => {
   try {
