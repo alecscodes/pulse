@@ -47,13 +47,7 @@ class MonitorCheckService
             if ($response->successful()) {
                 $body = $response->body();
                 $result['response_body'] = Str::limit($body, self::MAX_BODY_SIZE);
-
-                if ($monitor->enable_content_validation) {
-                    $result['content_valid'] = $this->validateContent($monitor, $body);
-                } else {
-                    $result['content_valid'] = null;
-                }
-
+                $result['content_valid'] = $monitor->enable_content_validation ? $this->validateContent($monitor, $body) : null;
                 $result['status'] = $result['content_valid'] === false ? 'down' : 'up';
             } else {
                 $result['error_message'] = "HTTP {$response->status()}";
@@ -136,54 +130,12 @@ class MonitorCheckService
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
-        $expectedTitle = trim($monitor->expected_title ?? '');
-        $expectedContent = trim($monitor->expected_content ?? '');
-        $hasExpectedTitle = ! empty($expectedTitle);
-        $hasExpectedContent = ! empty($expectedContent);
 
-        // Check if title is in static HTML
-        $titleInStaticHtml = $hasExpectedTitle && (
-            $this->extractTitleFromBody($body) === $expectedTitle
-            || stripos($body, $expectedTitle) !== false
-        );
-
-        // Check if content is in static HTML
-        $contentInStaticHtml = ! $hasExpectedContent || stripos($body, $expectedContent) !== false;
-
-        // If both are in HTML, validation passes
-        if ($titleInStaticHtml && $contentInStaticHtml) {
-            return true;
+        if (! $this->validateWithHttpBody($body, $monitor)) {
+            return $this->validateWithPlaywright($monitor);
         }
 
-        // If title is in HTML but content is not (SPA), try Playwright
-        if ($titleInStaticHtml && $hasExpectedContent && ! $contentInStaticHtml) {
-            $playwrightResult = $this->validateWithPlaywright($monitor);
-            // If Playwright fails (Alpine issue), accept title-only as fallback
-            if (! $playwrightResult) {
-                return $titleInStaticHtml;
-            }
-
-            return $playwrightResult;
-        }
-
-        // If content is in HTML but title is not, accept content-only
-        if ($contentInStaticHtml && $hasExpectedContent && ! $titleInStaticHtml) {
-            return true;
-        }
-
-        // If title not in HTML, must be SPA - use Playwright
-        if ($hasExpectedTitle && ! $titleInStaticHtml) {
-            $playwrightResult = $this->validateWithPlaywright($monitor);
-            // If Playwright fails and we have content, accept content-only
-            if (! $playwrightResult && $contentInStaticHtml) {
-                return true;
-            }
-
-            return $playwrightResult;
-        }
-
-        // Try HTTP body validation
-        return $this->validateWithHttpBody($body, $monitor);
+        return true;
     }
 
     /**
@@ -258,8 +210,8 @@ class MonitorCheckService
 
             // Validate content: must be found if expected
             $expectedContent = trim($monitor->expected_content ?? '');
-            $contentValid = empty($expectedContent) || ($data['hasContent'] ?? false);
-
+            $contentValid = empty($expectedContent) || (stripos($data['textContent'] ?? '', $expectedContent) !== false);
+            
             return $titleValid && $contentValid;
         } catch (\Exception $e) {
             return false;
