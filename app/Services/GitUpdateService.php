@@ -284,6 +284,9 @@ class GitUpdateService
      */
     protected function runNpmInstall(string $workingDir, array &$result): void
     {
+        // Clean node_modules and fix permissions before installing
+        $this->cleanNodeModules($workingDir);
+
         $npmInstall = Process::path($workingDir)->run('npm ci');
 
         if ($npmInstall->successful()) {
@@ -300,12 +303,70 @@ class GitUpdateService
      */
     protected function runNpmBuild(string $workingDir, array &$result): void
     {
+        // Generate wayfinder types before building (required by vite plugin)
+        $this->generateWayfinderTypes($workingDir, $result);
+
         $npmBuild = Process::path($workingDir)->run('npm run build');
 
         if ($npmBuild->successful()) {
             $result['output'] .= "\n\n=== NPM Build ===\n".$npmBuild->output();
         } else {
             $result['output'] .= "\n\n=== NPM Build Failed ===\n".$npmBuild->errorOutput();
+        }
+    }
+
+    /**
+     * Clean node_modules directory to fix permission issues.
+     */
+    protected function cleanNodeModules(string $workingDir): void
+    {
+        try {
+            $nodeModulesPath = $workingDir.'/node_modules';
+
+            if (! is_dir($nodeModulesPath)) {
+                return;
+            }
+
+            // Fix permissions on node_modules before cleaning
+            // This prevents EACCES errors when npm tries to unlink files
+            if (function_exists('posix_getuid') && function_exists('posix_getgid')) {
+                $uid = posix_getuid();
+                $gid = posix_getgid();
+                Process::run("chown -R {$uid}:{$gid} {$nodeModulesPath} 2>/dev/null || true");
+            }
+
+            // Remove node_modules to avoid permission conflicts
+            // npm ci will recreate it cleanly with correct permissions
+            Process::run("rm -rf {$nodeModulesPath} 2>/dev/null || true");
+        } catch (\Exception $e) {
+            // Silently fail - npm ci will handle it
+        }
+    }
+
+    /**
+     * Generate Wayfinder types before building assets.
+     *
+     * @param  array<string, mixed>  $result
+     */
+    protected function generateWayfinderTypes(string $workingDir, array &$result): void
+    {
+        try {
+            // Clear config cache first to ensure fresh environment
+            Process::path($workingDir)->run('php artisan config:clear');
+
+            // Generate wayfinder types (required by vite plugin during build)
+            $wayfinder = Process::path($workingDir)
+                ->timeout(60)
+                ->run('php artisan wayfinder:generate --with-form');
+
+            if ($wayfinder->successful()) {
+                $result['output'] .= "\n\n=== Wayfinder Types Generated ===\n".$wayfinder->output();
+            } else {
+                // Log warning but don't fail - build might still work
+                $result['output'] .= "\n\n=== Wayfinder Warning ===\n".$wayfinder->errorOutput();
+            }
+        } catch (\Exception $e) {
+            // Silently fail - build will attempt to generate types itself
         }
     }
 
