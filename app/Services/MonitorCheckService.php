@@ -9,11 +9,11 @@ use Illuminate\Support\Str;
 
 class MonitorCheckService
 {
-    private const TIMEOUT = 30;
+    private const int TIMEOUT = 30;
 
-    private const CONNECTIVITY_TIMEOUT = 5;
+    private const int CONNECTIVITY_TIMEOUT = 5;
 
-    private const MAX_BODY_SIZE = 5000;
+    private const int MAX_BODY_SIZE = 5000;
 
     /**
      * Check if internet connectivity is available.
