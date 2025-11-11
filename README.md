@@ -5,6 +5,25 @@
 
 ---
 
+## 🎥 Deploy Demo
+
+<p align="center">
+  <a href="https://youtu.be/mj2KfzKSNPU" target="_blank">
+    <img
+      src="https://img.youtube.com/vi/mj2KfzKSNPU/maxresdefault.jpg"
+      alt="Pulse Deploy Demo"
+      style="width:100%;max-width:900px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15);"
+    >
+  </a>
+</p>
+
+<p align="center">
+  <em>Watch how to clone, configure, and deploy <b>Pulse</b> in under 2 minutes.</em><br>
+  <a href="https://youtu.be/mj2KfzKSNPU" target="_blank">▶️ Watch on YouTube</a>
+</p>
+
+---
+
 ## 📋 Table of Contents
 
 - [Quick Start](#-quick-start)
@@ -21,7 +40,7 @@
 
 ## 🚀 Quick Start
 
-### 🚀 Deploy
+### 📦 Deploy
 
 ```bash
 git clone https://github.com/alecscodes/pulse.git
