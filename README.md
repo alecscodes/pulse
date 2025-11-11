@@ -21,21 +21,7 @@
 
 ## 🚀 Quick Start
 
-### 🐳 Docker (Recommended)
-
-The easiest way to get started with Pulse:
-
-```bash
-git clone https://github.com/alecscodes/pulse.git
-cd pulse
-cp .env.example .env
-# Set APP_URL in .env
-docker-compose up -d
-```
-
-### 🏭 Production Deployment
-
-For production environments:
+### 🚀 Deploy
 
 ```bash
 git clone https://github.com/alecscodes/pulse.git
@@ -43,12 +29,17 @@ cd pulse
 ./deploy.sh
 ```
 
-The `deploy.sh` script automatically sets up cron jobs for:
+The `deploy.sh` script will:
 
-- Laravel scheduler (runs every minute)
-- Queue worker auto-start (checks every minute, starts if not running)
+- Set up `.env` and prompt for `APP_URL`
+- Ask you to choose between **Docker** or **Standard** deployment (first time only)
+- Remember your choice for future deployments
+- Handle all setup automatically
 
-**Note:** The queue worker must be running for down monitors to be checked every 3 seconds.
+**Docker:** Uses `docker compose up -d --build --remove-orphans` (queue worker runs in container)  
+**Standard:** Manual setup with automatic cron jobs for scheduler and queue worker
+
+**Note:** Queue worker must be running for down monitors to be checked every 3 seconds.
 
 ### 💻 Local Development
 
