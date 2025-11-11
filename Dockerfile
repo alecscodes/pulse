@@ -27,6 +27,7 @@ RUN apk add --no-cache --virtual .build-deps \
     ca-certificates \
     ttf-freefont \
     gcompat \
+    chromium \
     && docker-php-ext-install mbstring zip pdo pdo_sqlite sockets \
     && apk del .build-deps
 

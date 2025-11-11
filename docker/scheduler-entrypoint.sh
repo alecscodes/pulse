@@ -14,8 +14,8 @@ DB_FILE="/var/www/database/database.sqlite"
 
 php artisan migrate --force
 
-# Ensure Playwright browsers are installed (needed for monitor checks)
-php artisan playwright:install --quiet || true
+# Ensure Puppeteer-core is installed (needed for monitor checks)
+php artisan puppeteer:install --quiet || true
 
 echo "Starting Laravel scheduler..."
 exec php artisan schedule:work --no-interaction

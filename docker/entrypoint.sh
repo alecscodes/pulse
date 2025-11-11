@@ -73,9 +73,9 @@ log_info "Optimizing..."
 composer dump-autoload --optimize --no-interaction --quiet
 php artisan optimize || true
 
-# Ensure Playwright browsers are installed
-log_info "Ensuring Playwright browsers are installed..."
-php artisan playwright:install --quiet || log_warn "Playwright browser installation skipped or failed"
+# Ensure Puppeteer-core is installed
+log_info "Ensuring Puppeteer-core is installed..."
+php artisan puppeteer:install --quiet || log_warn "Puppeteer-core installation skipped or failed"
 
 log_info "Entrypoint setup completed successfully!"
 exec php-fpm

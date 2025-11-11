@@ -123,16 +123,14 @@ class MonitorCheckService
 
     /**
      * Validate content against expected title and content.
-     * Uses Playwright for title validation when title is expected (SPAs set title via JS).
+     * Uses Puppeteer for title validation when title is expected (SPAs set title via JS).
      * Falls back to HTTP body validation for content-only checks.
-     * Note: Playwright may fail on Alpine Linux due to glibc/musl incompatibility.
-     * In such cases, accepts title-only or content-only validation as fallback.
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
 
         if (! $this->validateWithHttpBody($body, $monitor)) {
-            return $this->validateWithPlaywright($monitor);
+            return $this->validateWithPuppeteer($monitor);
         }
 
         return true;
@@ -175,23 +173,27 @@ class MonitorCheckService
     }
 
     /**
-     * Validate content using Playwright.
+     * Validate content using Puppeteer.
      */
-    private function validateWithPlaywright(Monitor $monitor): bool
+    private function validateWithPuppeteer(Monitor $monitor): bool
     {
         if (! $this->commandExists('node')) {
             return false;
         }
 
         try {
+            $puppeteerService = app(\App\Services\PuppeteerInstallationService::class);
+            $chromiumPath = $puppeteerService->getChromiumPath();
+
             $config = [
                 'url' => $monitor->url,
                 'expectedTitle' => $monitor->expected_title,
                 'expectedContent' => $monitor->expected_content,
+                'chromiumPath' => $chromiumPath,
             ];
 
             $configJson = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            $script = $this->getPlaywrightScript($configJson);
+            $script = $this->getPuppeteerScript($configJson);
             $basePath = base_path();
             $output = trim(shell_exec("cd {$basePath} && node -e ".escapeshellarg($script).' 2>/dev/null') ?: '');
 
@@ -211,7 +213,7 @@ class MonitorCheckService
             // Validate content: must be found if expected
             $expectedContent = trim($monitor->expected_content ?? '');
             $contentValid = empty($expectedContent) || (stripos($data['textContent'] ?? '', $expectedContent) !== false);
-            
+
             return $titleValid && $contentValid;
         } catch (\Exception $e) {
             return false;
@@ -219,20 +221,25 @@ class MonitorCheckService
     }
 
     /**
-     * Get Playwright script for content validation.
+     * Get Puppeteer script for content validation.
      */
-    private function getPlaywrightScript(string $configJson): string
+    private function getPuppeteerScript(string $configJson): string
     {
         return <<<SCRIPT
-import { chromium } from 'playwright';
+const puppeteer = require('puppeteer-core');
 const config = {$configJson};
 (async () => {
   try {
-    const browser = await chromium.launch({headless: true, args: ['--no-sandbox']});
+    const browser = await puppeteer.launch({
+      executablePath: config.chromiumPath,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-extensions', '--disable-background-networking', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-breakpad', '--disable-client-side-phishing-detection', '--disable-default-apps', '--disable-features=TranslateUI', '--disable-hang-monitor', '--disable-ipc-flooding-protection', '--disable-popup-blocking', '--disable-prompt-on-repost', '--disable-renderer-backgrounding', '--disable-sync', '--disable-translate', '--metrics-recording-only', '--no-first-run', '--safebrowsing-disable-auto-update', '--enable-automation', '--password-store=basic', '--use-mock-keychain', '--memory-pressure-off']
+    });
     const page = await browser.newPage();
-    await page.goto(config.url, {waitUntil: 'networkidle', timeout: 30000});
+    await page.setViewport({ width: 1280, height: 720 });
+    await page.goto(config.url, {waitUntil: 'networkidle2', timeout: 30000});
     const title = await page.title();
-    const textContent = await page.textContent('body') || '';
+    const textContent = await page.evaluate(() => document.body.textContent || '');
     await browser.close();
     const result = {
       title: title || '',

@@ -14,8 +14,8 @@ DB_FILE="/var/www/database/database.sqlite"
 
 php artisan migrate --force
 
-# Ensure Playwright browsers are installed (needed if queue processes monitor checks)
-php artisan playwright:install --quiet || true
+# Ensure Puppeteer-core is installed (needed if queue processes monitor checks)
+php artisan puppeteer:install --quiet || true
 
 echo "Starting Laravel queue worker..."
 exec php artisan queue:work --tries=3 --timeout=90 --no-interaction
