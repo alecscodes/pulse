@@ -211,8 +211,12 @@ class MonitorCheckService
             $titleValid = empty($expectedTitle) || trim($data['title'] ?? '') === $expectedTitle;
 
             // Validate content: must be found if expected
+            // Normalize whitespace in both strings to handle newlines and extra spaces
             $expectedContent = trim($monitor->expected_content ?? '');
-            $contentValid = empty($expectedContent) || (stripos($data['textContent'] ?? '', $expectedContent) !== false);
+            $textContent = $data['textContent'] ?? '';
+            $normalizedTextContent = preg_replace('/\s+/', ' ', $textContent);
+            $normalizedExpectedContent = preg_replace('/\s+/', ' ', $expectedContent);
+            $contentValid = empty($expectedContent) || (stripos($normalizedTextContent, $normalizedExpectedContent) !== false);
 
             return $titleValid && $contentValid;
         } catch (\Exception $e) {
