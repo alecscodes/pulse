@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Button } from '@/components/ui/button';
 import { GITHUB_REPO_URL } from '@/lib/constants';
 import { dashboard, login, register } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
-import { Activity, AlertCircle, Github } from 'lucide-vue-next';
+import { AlertCircle, Github } from 'lucide-vue-next';
 
 withDefaults(
     defineProps<{
@@ -34,11 +35,15 @@ withDefaults(
 
             <!-- Main Content -->
             <div
-                class="flex flex-col items-center space-y-8 rounded-xl border border-border bg-card p-8 shadow-lg dark:shadow-2xl"
+                class="flex flex-col items-center space-y-4 rounded-xl border border-border bg-card p-8 shadow-lg dark:shadow-2xl"
             >
                 <div class="flex items-center justify-center">
-                    <div class="rounded-full bg-primary/10 p-4">
-                        <Activity class="h-12 w-12 text-primary" />
+                    <div
+                        class="mb-1 flex h-16 w-16 items-center justify-center rounded-md bg-black p-1.5 dark:bg-white"
+                    >
+                        <AppLogoIcon
+                            class="size-full object-contain invert dark:invert-0"
+                        />
                     </div>
                 </div>
 

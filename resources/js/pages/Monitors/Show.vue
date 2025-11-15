@@ -112,7 +112,7 @@ function getDowntimeDuration(downtime: Downtime): number | undefined {
     if (downtime.duration_seconds != null && downtime.duration_seconds >= 0) {
         return downtime.duration_seconds;
     }
-    
+
     if (!downtime.ended_at) {
         return undefined;
     }
