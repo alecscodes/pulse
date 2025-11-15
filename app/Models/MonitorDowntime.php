@@ -63,7 +63,7 @@ class MonitorDowntime extends Model
     public function calculateDuration(): void
     {
         if ($this->ended_at !== null) {
-            $this->duration_seconds = (int) $this->ended_at->diffInSeconds($this->started_at);
+            $this->duration_seconds = (int) abs($this->started_at->diffInSeconds($this->ended_at));
         }
     }
 }

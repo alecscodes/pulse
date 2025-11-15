@@ -95,17 +95,33 @@ const downtimeTotalPages = computed(() => {
 });
 
 function formatDuration(seconds?: number): string {
-    if (!seconds) {
+    if (!seconds || seconds < 0) {
         return 'N/A';
     }
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     const parts = [];
     if (hours > 0) parts.push(`${hours}h`);
     if (minutes > 0) parts.push(`${minutes}m`);
     if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
     return parts.join(' ');
+}
+
+function getDowntimeDuration(downtime: Downtime): number | undefined {
+    if (downtime.duration_seconds != null && downtime.duration_seconds >= 0) {
+        return downtime.duration_seconds;
+    }
+    
+    if (!downtime.ended_at) {
+        return undefined;
+    }
+
+    return Math.floor(
+        (new Date(downtime.ended_at).getTime() -
+            new Date(downtime.started_at).getTime()) /
+            1000,
+    );
 }
 
 function deleteMonitor(): void {
@@ -355,7 +371,7 @@ const actionSheetButtons = computed(() => [
                                 <Badge variant="destructive">
                                     {{
                                         formatDuration(
-                                            downtime.duration_seconds,
+                                            getDowntimeDuration(downtime),
                                         )
                                     }}
                                 </Badge>
