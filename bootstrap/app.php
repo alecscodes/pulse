@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\BlockBots;
 use App\Http\Middleware\CheckBannedIp;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -21,7 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Block bots and crawlers first
         $middleware->web(prepend: [
+            BlockBots::class,
             CheckBannedIp::class,
         ]);
 
