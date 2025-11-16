@@ -8,18 +8,18 @@
 ## 🎥 Deploy Demo
 
 <p align="center">
-  <a href="https://youtu.be/mj2KfzKSNPU" target="_blank">
+  <a href="https://streamable.com/aigbjy" target="_blank">
     <img
-      src="https://img.youtube.com/vi/mj2KfzKSNPU/maxresdefault.jpg"
+      src="https://cdn-cf-east.streamable.com/image/aigbjy.jpg?Expires=1763553176117&Key-Pair-Id=APKAIEYUVEN4EVB2OKEQ&Signature=XhqhbWeIdJJrMLrpKOYXePrjqR4aeruj5HePbtqHi-UZeE1QZDOA8woljhzLZb-WZoL7eVfhg3xEHtNT4QaVbDaxDybIf6u4dPiFHu3J6eb32C~Ug2lW1nK9wYKtbRAcZ6jjW2rQP3fmDgO0RfCYbL1beOJlJjmvqdhDdYqa1yuC1wU9khDv~iRFZgwpwUJo04SweQaKYgEalEsety0TAwjxLTGKIk8lKlKR9RY2Vc0ng0FzvMfYmqSmMMbyd6Uj2LM5oThTVyG6l8ywXkVmV0U6AoEyWLphloEuxx-Cnp7ToMP1a1Y4OMOLRRiE0ig98vJTLdvE1tiaHA5oYenhZQ__"
       alt="Pulse Deploy Demo"
-      style="width:100%;max-width:900px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15);"
+      style="width:100%;max-width:900px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15);cursor:pointer;"
     >
   </a>
 </p>
 
 <p align="center">
   <em>Watch how to clone, configure, and deploy <b>Pulse</b> in under 2 minutes.</em><br>
-  <a href="https://youtu.be/mj2KfzKSNPU" target="_blank">▶️ Watch on YouTube</a>
+  <a href="https://streamable.com/aigbjy" target="_blank">▶️ Watch on Streamable</a>
 </p>
 
 ---
