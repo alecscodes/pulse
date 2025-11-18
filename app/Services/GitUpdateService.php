@@ -122,6 +122,16 @@ class GitUpdateService
         try {
             $workingDir = base_path();
 
+            // Check if there are commits available before updating
+            $updateCheck = $this->checkForUpdates();
+            if (! $updateCheck['available']) {
+                $result['success'] = true;
+                $result['message'] = 'No updates available: local branch is up to date with remote.';
+                $result['output'] = 'No commits to pull from origin.';
+
+                return $result;
+            }
+
             // Use deploy.sh for non-Docker deployments
             // For Docker, use manual process (git reset --hard) since deploy.sh does git pull
             if ($this->isRunningInDocker()) {
@@ -182,6 +192,9 @@ class GitUpdateService
             $changedFiles = $this->getChangedFiles($oldCommitHash);
             $this->fixPermissions($changedFiles);
 
+            // Ensure storage directories have correct permissions
+            $this->ensureStoragePermissions($workingDir);
+
             // Always run full deployment steps (like deploy.sh)
             $this->runFullDeployment($workingDir, $result);
 
@@ -215,8 +228,23 @@ class GitUpdateService
             $this->runNpmBuild($workingDir, $result);
         }
 
+        // Restart queue worker to prevent database locks during migrations
+        // This tells workers to stop gracefully after finishing current jobs
+        if ($this->isRunningInDocker()) {
+            Process::path($workingDir)->run('sh -c "php artisan queue:restart"');
+        } else {
+            Process::path($workingDir)->run('php artisan queue:restart');
+        }
+
+        // Wait a moment for queue workers to finish current jobs before migrations
+        sleep(2);
+
         // Run migrations
-        $migrate = Process::path($workingDir)->run('php artisan migrate --force');
+        if ($this->isRunningInDocker()) {
+            $migrate = Process::path($workingDir)->run('sh -c "php artisan migrate --force"');
+        } else {
+            $migrate = Process::path($workingDir)->run('php artisan migrate --force');
+        }
         if ($migrate->successful()) {
             $result['output'] .= "\n\n=== Migrations ===\n".$migrate->output();
         } else {
@@ -226,12 +254,20 @@ class GitUpdateService
         // Clear and optimize
         $this->clearCaches();
 
-        $optimize = Process::path($workingDir)->run('php artisan optimize');
+        if ($this->isRunningInDocker()) {
+            $optimize = Process::path($workingDir)->run('sh -c "php artisan optimize"');
+        } else {
+            $optimize = Process::path($workingDir)->run('php artisan optimize');
+        }
         if ($optimize->successful()) {
             $result['output'] .= "\n\n=== Optimize ===\n".$optimize->output();
         }
 
-        $dumpAutoload = Process::path($workingDir)->run('composer dump-autoload --optimize --no-interaction');
+        if ($this->isRunningInDocker()) {
+            $dumpAutoload = Process::path($workingDir)->run('sh -c "composer dump-autoload --optimize --no-interaction"');
+        } else {
+            $dumpAutoload = Process::path($workingDir)->run('composer dump-autoload --optimize --no-interaction');
+        }
         if ($dumpAutoload->successful()) {
             $result['output'] .= "\n\n=== Autoload Dump ===\n".$dumpAutoload->output();
         }
@@ -268,7 +304,12 @@ class GitUpdateService
      */
     protected function runComposerInstall(string $workingDir, array &$result): void
     {
-        $composer = Process::path($workingDir)->run('composer install --no-dev --optimize-autoloader --no-interaction --no-scripts');
+        // When in Docker, run via shell to ensure proper environment
+        if ($this->isRunningInDocker()) {
+            $composer = Process::path($workingDir)->run('sh -c "composer install --no-dev --optimize-autoloader --no-interaction --no-scripts"');
+        } else {
+            $composer = Process::path($workingDir)->run('composer install --no-dev --optimize-autoloader --no-interaction --no-scripts');
+        }
 
         if ($composer->successful()) {
             $result['output'] .= "\n\n=== Composer Install ===\n".$composer->output();
@@ -287,7 +328,12 @@ class GitUpdateService
         // Clean node_modules and fix permissions before installing
         $this->cleanNodeModules($workingDir);
 
-        $npmInstall = Process::path($workingDir)->run('npm ci');
+        // When in Docker, run via shell to ensure proper environment
+        if ($this->isRunningInDocker()) {
+            $npmInstall = Process::path($workingDir)->run('sh -c "npm ci"');
+        } else {
+            $npmInstall = Process::path($workingDir)->run('npm ci');
+        }
 
         if ($npmInstall->successful()) {
             $result['output'] .= "\n\n=== NPM Install ===\n".$npmInstall->output();
@@ -306,7 +352,12 @@ class GitUpdateService
         // Generate wayfinder types before building (required by vite plugin)
         $this->generateWayfinderTypes($workingDir, $result);
 
-        $npmBuild = Process::path($workingDir)->run('npm run build');
+        // When in Docker, run via shell to ensure proper environment
+        if ($this->isRunningInDocker()) {
+            $npmBuild = Process::path($workingDir)->run('sh -c "npm run build"');
+        } else {
+            $npmBuild = Process::path($workingDir)->run('npm run build');
+        }
 
         if ($npmBuild->successful()) {
             $result['output'] .= "\n\n=== NPM Build ===\n".$npmBuild->output();
@@ -352,12 +403,22 @@ class GitUpdateService
     {
         try {
             // Clear config cache first to ensure fresh environment
-            Process::path($workingDir)->run('php artisan config:clear');
+            if ($this->isRunningInDocker()) {
+                Process::path($workingDir)->run('sh -c "php artisan config:clear"');
+            } else {
+                Process::path($workingDir)->run('php artisan config:clear');
+            }
 
             // Generate wayfinder types (required by vite plugin during build)
-            $wayfinder = Process::path($workingDir)
-                ->timeout(60)
-                ->run('php artisan wayfinder:generate --with-form');
+            if ($this->isRunningInDocker()) {
+                $wayfinder = Process::path($workingDir)
+                    ->timeout(60)
+                    ->run('sh -c "php artisan wayfinder:generate --with-form"');
+            } else {
+                $wayfinder = Process::path($workingDir)
+                    ->timeout(60)
+                    ->run('php artisan wayfinder:generate --with-form');
+            }
 
             if ($wayfinder->successful()) {
                 $result['output'] .= "\n\n=== Wayfinder Types Generated ===\n".$wayfinder->output();
@@ -472,7 +533,11 @@ class GitUpdateService
             $commands = ['config:clear', 'route:clear', 'view:clear', 'cache:clear'];
 
             foreach ($commands as $command) {
-                Process::path($workingDir)->run("php artisan {$command}");
+                if ($this->isRunningInDocker()) {
+                    Process::path($workingDir)->run("sh -c \"php artisan {$command}\"");
+                } else {
+                    Process::path($workingDir)->run("php artisan {$command}");
+                }
             }
         } catch (\Exception $e) {
             // Silently fail
@@ -520,6 +585,45 @@ class GitUpdateService
             }
 
             Process::run("chown -R {$uid}:{$gid} {$workingDir}/.git 2>/dev/null || true");
+        } catch (\Exception $e) {
+            // Silently fail
+        }
+    }
+
+    /**
+     * Ensure storage directories have correct permissions for the application to write.
+     */
+    protected function ensureStoragePermissions(string $workingDir): void
+    {
+        try {
+            if (! function_exists('posix_getuid') || ! function_exists('posix_getgid')) {
+                return;
+            }
+
+            $uid = posix_getuid();
+            $gid = posix_getgid();
+
+            // Fix storage directory permissions
+            $storagePath = $workingDir.'/storage';
+            if (is_dir($storagePath)) {
+                if ($this->isRunningInDocker()) {
+                    Process::run("sh -c \"chown -R {$uid}:{$gid} {$storagePath} && chmod -R 775 {$storagePath}\" 2>/dev/null || true");
+                } else {
+                    Process::run("chown -R {$uid}:{$gid} {$storagePath} 2>/dev/null || true");
+                    Process::run("chmod -R 775 {$storagePath} 2>/dev/null || true");
+                }
+            }
+
+            // Fix bootstrap/cache directory permissions
+            $bootstrapCachePath = $workingDir.'/bootstrap/cache';
+            if (is_dir($bootstrapCachePath)) {
+                if ($this->isRunningInDocker()) {
+                    Process::run("sh -c \"chown -R {$uid}:{$gid} {$bootstrapCachePath} && chmod -R 775 {$bootstrapCachePath}\" 2>/dev/null || true");
+                } else {
+                    Process::run("chown -R {$uid}:{$gid} {$bootstrapCachePath} 2>/dev/null || true");
+                    Process::run("chmod -R 775 {$bootstrapCachePath} 2>/dev/null || true");
+                }
+            }
         } catch (\Exception $e) {
             // Silently fail
         }

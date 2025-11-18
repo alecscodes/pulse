@@ -15,6 +15,31 @@ it('can check for updates', function () {
         ->toHaveKeys(['available', 'current_commit', 'remote_commit', 'commits_behind', 'error']);
 });
 
+it('skips update when no commits are available', function () {
+    if (! is_dir(base_path('.git'))) {
+        $this->markTestSkipped('Not a git repository');
+    }
+
+    $service = app(GitUpdateService::class);
+
+    Process::fake([
+        // checkForUpdates() calls - no commits available
+        'git --version' => Process::result(output: 'git version 2.0.0'),
+        'git rev-parse --git-dir' => Process::result(),
+        'git rev-parse HEAD' => Process::result(output: 'abc123'),
+        'git fetch origin --quiet' => Process::result(),
+        'git rev-parse --abbrev-ref HEAD' => Process::result(output: 'main'),
+        'git rev-list --count HEAD..origin/main' => Process::result(output: '0'),
+        'git rev-parse origin/main' => Process::result(output: 'abc123'),
+    ]);
+
+    $result = $service->performUpdate();
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['message'])->toContain('No updates available')
+        ->and($result['output'])->toContain('No commits to pull');
+});
+
 it('returns error when git is not available', function () {
     Process::fake([
         'git --version' => Process::result(errorOutput: 'Git not found', exitCode: 1),
@@ -55,22 +80,31 @@ it('performs update successfully with reset approach in Docker', function () {
     $service->method('isRunningInDocker')->willReturn(true);
 
     Process::fake([
+        // checkForUpdates() calls
+        'git --version' => Process::result(output: 'git version 2.0.0'),
+        'git rev-parse --git-dir' => Process::result(),
         'git rev-parse HEAD' => Process::result(output: 'abc123'),
+        'git fetch origin --quiet' => Process::result(),
         'git rev-parse --abbrev-ref HEAD' => Process::result(output: 'main'),
+        'git rev-list --count HEAD..origin/main' => Process::result(output: '1'),
+        'git rev-parse origin/main' => Process::result(output: 'def456'),
+        // performUpdate() calls
         'git fetch origin' => Process::result(),
         'git reset --hard origin/main' => Process::result(output: 'HEAD is now at abc123'),
         'git clean -fd' => Process::result(),
         'git diff --name-only abc123 HEAD' => Process::result(output: ''),
-        'composer install*' => Process::result(output: 'Dependencies installed'),
-        'npm ci' => Process::result(output: 'Dependencies installed'),
-        'npm run build' => Process::result(output: 'Build completed'),
-        'php artisan migrate --force' => Process::result(output: 'Migrations completed'),
-        'php artisan config:clear' => Process::result(),
-        'php artisan route:clear' => Process::result(),
-        'php artisan view:clear' => Process::result(),
-        'php artisan cache:clear' => Process::result(),
-        'php artisan optimize' => Process::result(output: 'Optimized'),
-        'composer dump-autoload*' => Process::result(output: 'Autoload dumped'),
+        'sh -c "composer install*' => Process::result(output: 'Dependencies installed'),
+        'sh -c "npm ci"' => Process::result(output: 'Dependencies installed'),
+        'sh -c "php artisan config:clear"' => Process::result(),
+        'sh -c "php artisan wayfinder:generate --with-form"' => Process::result(output: 'Types generated'),
+        'sh -c "npm run build"' => Process::result(output: 'Build completed'),
+        'sh -c "php artisan migrate --force"' => Process::result(output: 'Migrations completed'),
+        'sh -c "php artisan config:clear"' => Process::result(),
+        'sh -c "php artisan route:clear"' => Process::result(),
+        'sh -c "php artisan view:clear"' => Process::result(),
+        'sh -c "php artisan cache:clear"' => Process::result(),
+        'sh -c "php artisan optimize"' => Process::result(output: 'Optimized'),
+        'sh -c "composer dump-autoload*' => Process::result(output: 'Autoload dumped'),
         'chown*' => Process::result(),
     ]);
 
@@ -91,8 +125,15 @@ it('handles fetch failures gracefully in Docker', function () {
     $service->method('isRunningInDocker')->willReturn(true);
 
     Process::fake([
+        // checkForUpdates() calls
+        'git --version' => Process::result(output: 'git version 2.0.0'),
+        'git rev-parse --git-dir' => Process::result(),
         'git rev-parse HEAD' => Process::result(output: 'abc123'),
+        'git fetch origin --quiet' => Process::result(),
         'git rev-parse --abbrev-ref HEAD' => Process::result(output: 'main'),
+        'git rev-list --count HEAD..origin/main' => Process::result(output: '1'),
+        'git rev-parse origin/main' => Process::result(output: 'def456'),
+        // performUpdate() calls - fetch fails
         'git fetch origin' => Process::result(errorOutput: 'Failed to connect', exitCode: 1),
     ]);
 
@@ -113,8 +154,15 @@ it('handles reset failures gracefully in Docker', function () {
     $service->method('isRunningInDocker')->willReturn(true);
 
     Process::fake([
+        // checkForUpdates() calls
+        'git --version' => Process::result(output: 'git version 2.0.0'),
+        'git rev-parse --git-dir' => Process::result(),
         'git rev-parse HEAD' => Process::result(output: 'abc123'),
+        'git fetch origin --quiet' => Process::result(),
         'git rev-parse --abbrev-ref HEAD' => Process::result(output: 'main'),
+        'git rev-list --count HEAD..origin/main' => Process::result(output: '1'),
+        'git rev-parse origin/main' => Process::result(output: 'def456'),
+        // performUpdate() calls - reset fails
         'git fetch origin' => Process::result(),
         'git reset --hard origin/main' => Process::result(errorOutput: 'Reset failed', exitCode: 1),
     ]);
@@ -136,22 +184,31 @@ it('runs composer install during update in Docker', function () {
     $service->method('isRunningInDocker')->willReturn(true);
 
     Process::fake([
+        // checkForUpdates() calls
+        'git --version' => Process::result(output: 'git version 2.0.0'),
+        'git rev-parse --git-dir' => Process::result(),
         'git rev-parse HEAD' => Process::result(output: 'abc123'),
+        'git fetch origin --quiet' => Process::result(),
         'git rev-parse --abbrev-ref HEAD' => Process::result(output: 'main'),
+        'git rev-list --count HEAD..origin/main' => Process::result(output: '1'),
+        'git rev-parse origin/main' => Process::result(output: 'def456'),
+        // performUpdate() calls
         'git fetch origin' => Process::result(),
         'git reset --hard origin/main' => Process::result(output: 'HEAD is now at abc123'),
         'git clean -fd' => Process::result(),
         'git diff --name-only abc123 HEAD' => Process::result(output: "composer.json\ncomposer.lock"),
-        'composer install*' => Process::result(output: 'Dependencies installed'),
-        'npm ci' => Process::result(output: 'Dependencies installed'),
-        'npm run build' => Process::result(output: 'Build completed'),
-        'php artisan migrate --force' => Process::result(output: 'Migrations completed'),
-        'php artisan config:clear' => Process::result(),
-        'php artisan route:clear' => Process::result(),
-        'php artisan view:clear' => Process::result(),
-        'php artisan cache:clear' => Process::result(),
-        'php artisan optimize' => Process::result(output: 'Optimized'),
-        'composer dump-autoload*' => Process::result(output: 'Autoload dumped'),
+        'sh -c "composer install*' => Process::result(output: 'Dependencies installed'),
+        'sh -c "npm ci"' => Process::result(output: 'Dependencies installed'),
+        'sh -c "php artisan config:clear"' => Process::result(),
+        'sh -c "php artisan wayfinder:generate --with-form"' => Process::result(output: 'Types generated'),
+        'sh -c "npm run build"' => Process::result(output: 'Build completed'),
+        'sh -c "php artisan migrate --force"' => Process::result(output: 'Migrations completed'),
+        'sh -c "php artisan config:clear"' => Process::result(),
+        'sh -c "php artisan route:clear"' => Process::result(),
+        'sh -c "php artisan view:clear"' => Process::result(),
+        'sh -c "php artisan cache:clear"' => Process::result(),
+        'sh -c "php artisan optimize"' => Process::result(output: 'Optimized'),
+        'sh -c "composer dump-autoload*' => Process::result(output: 'Autoload dumped'),
         'chown*' => Process::result(),
     ]);
 
@@ -171,22 +228,31 @@ it('runs npm ci and build during update in Docker', function () {
     $service->method('isRunningInDocker')->willReturn(true);
 
     Process::fake([
+        // checkForUpdates() calls
+        'git --version' => Process::result(output: 'git version 2.0.0'),
+        'git rev-parse --git-dir' => Process::result(),
         'git rev-parse HEAD' => Process::result(output: 'abc123'),
+        'git fetch origin --quiet' => Process::result(),
         'git rev-parse --abbrev-ref HEAD' => Process::result(output: 'main'),
+        'git rev-list --count HEAD..origin/main' => Process::result(output: '1'),
+        'git rev-parse origin/main' => Process::result(output: 'def456'),
+        // performUpdate() calls
         'git fetch origin' => Process::result(),
         'git reset --hard origin/main' => Process::result(output: 'HEAD is now at abc123'),
         'git clean -fd' => Process::result(),
         'git diff --name-only abc123 HEAD' => Process::result(output: "package.json\npackage-lock.json"),
-        'composer install*' => Process::result(output: 'Dependencies installed'),
-        'npm ci' => Process::result(output: 'Dependencies installed'),
-        'npm run build' => Process::result(output: 'Build completed'),
-        'php artisan migrate --force' => Process::result(output: 'Migrations completed'),
-        'php artisan config:clear' => Process::result(),
-        'php artisan route:clear' => Process::result(),
-        'php artisan view:clear' => Process::result(),
-        'php artisan cache:clear' => Process::result(),
-        'php artisan optimize' => Process::result(output: 'Optimized'),
-        'composer dump-autoload*' => Process::result(output: 'Autoload dumped'),
+        'sh -c "composer install*' => Process::result(output: 'Dependencies installed'),
+        'sh -c "npm ci"' => Process::result(output: 'Dependencies installed'),
+        'sh -c "php artisan config:clear"' => Process::result(),
+        'sh -c "php artisan wayfinder:generate --with-form"' => Process::result(output: 'Types generated'),
+        'sh -c "npm run build"' => Process::result(output: 'Build completed'),
+        'sh -c "php artisan migrate --force"' => Process::result(output: 'Migrations completed'),
+        'sh -c "php artisan config:clear"' => Process::result(),
+        'sh -c "php artisan route:clear"' => Process::result(),
+        'sh -c "php artisan view:clear"' => Process::result(),
+        'sh -c "php artisan cache:clear"' => Process::result(),
+        'sh -c "php artisan optimize"' => Process::result(output: 'Optimized'),
+        'sh -c "composer dump-autoload*' => Process::result(output: 'Autoload dumped'),
         'chown*' => Process::result(),
     ]);
 
@@ -207,22 +273,31 @@ it('runs npm build during update in Docker', function () {
     $service->method('isRunningInDocker')->willReturn(true);
 
     Process::fake([
+        // checkForUpdates() calls
+        'git --version' => Process::result(output: 'git version 2.0.0'),
+        'git rev-parse --git-dir' => Process::result(),
         'git rev-parse HEAD' => Process::result(output: 'abc123'),
+        'git fetch origin --quiet' => Process::result(),
         'git rev-parse --abbrev-ref HEAD' => Process::result(output: 'main'),
+        'git rev-list --count HEAD..origin/main' => Process::result(output: '1'),
+        'git rev-parse origin/main' => Process::result(output: 'def456'),
+        // performUpdate() calls
         'git fetch origin' => Process::result(),
         'git reset --hard origin/main' => Process::result(output: 'HEAD is now at abc123'),
         'git clean -fd' => Process::result(),
         'git diff --name-only abc123 HEAD' => Process::result(output: 'resources/js/app.js'),
-        'composer install*' => Process::result(output: 'Dependencies installed'),
-        'npm ci' => Process::result(output: 'Dependencies installed'),
-        'npm run build' => Process::result(output: 'Build completed'),
-        'php artisan migrate --force' => Process::result(output: 'Migrations completed'),
-        'php artisan config:clear' => Process::result(),
-        'php artisan route:clear' => Process::result(),
-        'php artisan view:clear' => Process::result(),
-        'php artisan cache:clear' => Process::result(),
-        'php artisan optimize' => Process::result(output: 'Optimized'),
-        'composer dump-autoload*' => Process::result(output: 'Autoload dumped'),
+        'sh -c "composer install*' => Process::result(output: 'Dependencies installed'),
+        'sh -c "npm ci"' => Process::result(output: 'Dependencies installed'),
+        'sh -c "php artisan config:clear"' => Process::result(),
+        'sh -c "php artisan wayfinder:generate --with-form"' => Process::result(output: 'Types generated'),
+        'sh -c "npm run build"' => Process::result(output: 'Build completed'),
+        'sh -c "php artisan migrate --force"' => Process::result(output: 'Migrations completed'),
+        'sh -c "php artisan config:clear"' => Process::result(),
+        'sh -c "php artisan route:clear"' => Process::result(),
+        'sh -c "php artisan view:clear"' => Process::result(),
+        'sh -c "php artisan cache:clear"' => Process::result(),
+        'sh -c "php artisan optimize"' => Process::result(output: 'Optimized'),
+        'sh -c "composer dump-autoload*' => Process::result(output: 'Autoload dumped'),
         'chown*' => Process::result(),
     ]);
 

@@ -60,6 +60,8 @@ The `deploy.sh` script will:
 
 **Note:** Queue worker must be running for down monitors to be checked every 3 seconds.
 
+**Permission Handling:** The script checks Git directory permissions at the start and fixes ownership if needed. If the `.git` directory is owned by a different user, the script will fix ownership once using `sudo`, then proceed normally. You don't need to run the entire script with `sudo`.
+
 ### 💻 Local Development
 
 For local development without Docker:
@@ -88,6 +90,7 @@ Visit `http://localhost:8000` to access the application.
 - 🔐 **Two-factor authentication** for enhanced security
 - 🌙 **Dark mode** for comfortable monitoring
 - 📱 **Mobile-first responsive design** - monitor from anywhere
+- 🔄 **Automatic updates** - updates run automatically every minute via scheduler
 
 ---
 
@@ -139,13 +142,27 @@ php artisan ip:unban 192.168.1.100
 php artisan ip:unban --all
 ```
 
-### 🔄 Updates
+### 🔄 Automatic Updates
 
-Update Pulse directly from the dashboard notification or via command line:
+Pulse automatically checks for and applies updates every minute via the Laravel scheduler:
+
+- **Autonomous updates**: The application checks for new commits from the Git repository every minute
+- **Smart skipping**: Updates are skipped if no new commits are available
+- **Docker support**: Commands run correctly in Docker environments via shell execution
+
+You can also manually trigger an update:
 
 ```bash
 php artisan git:update
 ```
+
+**Note:** The update process will automatically:
+
+- Pull latest changes from the repository
+- Install/update dependencies (Composer & NPM)
+- Build frontend assets
+- Run database migrations
+- Clear and optimize caches
 
 ---
 
@@ -193,7 +210,7 @@ Pulse includes several helpful Artisan commands:
 
 | Command | Description |
 |---------|-------------|
-| `php artisan git:update` | Update the application from Git repository |
+| `php artisan git:update` | Manually trigger application update from Git repository (runs automatically every minute) |
 | `php artisan ip:unban <ip>` | Unban a specific IP address |
 | `php artisan ip:unban --all` | Unban all banned IP addresses |
 | `php artisan monitors:check` | Manually trigger monitor checks |

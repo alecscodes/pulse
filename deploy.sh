@@ -62,6 +62,33 @@ fi
 if [ -d .git ]; then
     log "Resetting to match remote repository exactly..."
 
+    PROJECT_DIR=$(pwd)
+    
+    # Ensure Git directory is writable by current user
+    if [ ! -w .git ] 2>/dev/null; then
+        log "Fixing Git directory permissions..."
+        
+        # Remove stale lock files
+        rm -f .git/index.lock .git/*.lock 2>/dev/null || true
+        
+        # Fix ownership if needed
+        if command -v id >/dev/null 2>&1; then
+            USER_ID=$(id -u)
+            GROUP_ID=$(id -g)
+            
+            if ! chown -R "${USER_ID}:${GROUP_ID}" .git 2>/dev/null; then
+                log "Git directory owned by different user, fixing ownership..."
+                sudo chown -R "${USER_ID}:${GROUP_ID}" .git
+            fi
+        fi
+    fi
+    
+    # Remove any remaining lock files
+    rm -f .git/index.lock .git/*.lock 2>/dev/null || true
+    
+    # Configure git safe directory
+    git config --global --add safe.directory "$PROJECT_DIR" 2>/dev/null || true
+
     # Get current branch name
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
 
@@ -82,9 +109,8 @@ if [ -d .git ]; then
         git reset --hard origin/main || warn "Failed to reset to origin/main"
     }
 
-    # Clean untracked files and directories (optional - uncomment if you want to remove untracked files too)
-    # log "Cleaning untracked files..."
-    # git clean -fd || true
+    log "Cleaning untracked files..."
+    git clean -fd || true
 
     # Verify we're on the correct branch and up to date
     log "Verifying repository state..."
