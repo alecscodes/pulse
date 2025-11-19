@@ -1,21 +1,13 @@
 #!/bin/sh
 set -e
 
-set_ownership() {
-    if [ "${USER_ID}" != "82" ] || [ "${GROUP_ID}" != "82" ]; then
-        chown ${USER_ID}:${GROUP_ID} "$1"
-    else
-        chown www-data:www-data "$1"
-    fi
-}
+cd /var/www || exit 1
 
-DB_FILE="/var/www/database/database.sqlite"
-[ ! -f "${DB_FILE}" ] && touch "${DB_FILE}" && set_ownership "${DB_FILE}" && chmod 664 "${DB_FILE}"
-
-php artisan migrate --force
-
-# Ensure Puppeteer-core is installed (needed if queue processes monitor checks)
-php artisan puppeteer:install --quiet || true
+# Check if the web service is ready
+while ! curl -f http://web:80/up >/dev/null 2>&1; do
+    echo "Waiting for web service to be ready..."
+    sleep 5
+done
 
 echo "Starting Laravel queue worker..."
 exec php artisan queue:work --tries=3 --timeout=90 --no-interaction

@@ -60,7 +60,7 @@ The `deploy.sh` script will:
 
 **Note:** Queue worker must be running for down monitors to be checked every 3 seconds.
 
-**Permission Handling:** The script checks Git directory permissions at the start and fixes ownership if needed. If the `.git` directory is owned by a different user, the script will fix ownership once using `sudo`, then proceed normally. You don't need to run the entire script with `sudo`.
+**Docker User Mapping:** Docker containers automatically run as your current user (matching host user ID/group ID), ensuring files created in Docker have the same ownership as your host files. No permission changes needed!
 
 ### 💻 Local Development
 

@@ -64,26 +64,7 @@ if [ -d .git ]; then
 
     PROJECT_DIR=$(pwd)
     
-    # Ensure Git directory is writable by current user
-    if [ ! -w .git ] 2>/dev/null; then
-        log "Fixing Git directory permissions..."
-        
-        # Remove stale lock files
-        rm -f .git/index.lock .git/*.lock 2>/dev/null || true
-        
-        # Fix ownership if needed
-        if command -v id >/dev/null 2>&1; then
-            USER_ID=$(id -u)
-            GROUP_ID=$(id -g)
-            
-            if ! chown -R "${USER_ID}:${GROUP_ID}" .git 2>/dev/null; then
-                log "Git directory owned by different user, fixing ownership..."
-                sudo chown -R "${USER_ID}:${GROUP_ID}" .git
-            fi
-        fi
-    fi
-    
-    # Remove any remaining lock files
+    # Remove stale lock files
     rm -f .git/index.lock .git/*.lock 2>/dev/null || true
     
     # Configure git safe directory
@@ -91,6 +72,13 @@ if [ -d .git ]; then
 
     # Get current branch name
     CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+
+    # Fix permissions before git reset (only needed in Docker mode where files are owned by www-data)
+    if [ "$DEPLOY_MODE" = "docker" ] && docker ps --format '{{.Names}}' | grep -q "^pulse_app$"; then
+        log "Fixing file permissions before git reset..."
+        # Change ownership to host user so git commands on host can access files
+        docker exec pulse_app chown -R "$(id -u):$(id -g)" /var/www 2>/dev/null || true
+    fi
 
     # Abort any ongoing merge/rebase/cherry-pick operations
     log "Aborting any ongoing git operations..."
