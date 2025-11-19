@@ -153,7 +153,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
             <div v-if="monitors.length > 0" class="mt-4">
                 <Link href="/monitors">
-                    <Button variant="outline" class="w-full"
+                    <Button variant="outline" class="mx-auto flex"
                         >View All Monitors</Button
                     >
                 </Link>
