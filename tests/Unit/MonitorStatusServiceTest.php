@@ -106,10 +106,9 @@ test('if monitor is down should check again after 3 seconds', function () {
         ->andReturn($checkResultDown, $checkResultUp);
 
     $mockCheck1 = MonitorCheck::factory()->make(['monitor_id' => $monitor->id, 'status' => 'down']);
-    $mockCheck2 = MonitorCheck::factory()->make(['monitor_id' => $monitor->id, 'status' => 'up']);
     $checkService->shouldReceive('createCheck')
-        ->twice()
-        ->andReturn($mockCheck1, $mockCheck2);
+        ->once()
+        ->andReturn($mockCheck1);
 
     $notificationService->shouldNotReceive('sendMonitorDownNotification');
 
@@ -147,7 +146,7 @@ test('if monitor is down should send notification', function () {
 
     $mockCheck = MonitorCheck::factory()->make(['monitor_id' => $monitor->id, 'status' => 'down']);
     $checkService->shouldReceive('createCheck')
-        ->twice()
+        ->once()
         ->andReturn($mockCheck);
 
     $notificationService->shouldReceive('sendMonitorDownNotification')
@@ -192,7 +191,7 @@ test('if monitor is down and already notified should not send notification again
 
     $mockCheck = MonitorCheck::factory()->make(['monitor_id' => $monitor->id, 'status' => 'down']);
     $checkService->shouldReceive('createCheck')
-        ->twice()
+        ->once()
         ->andReturn($mockCheck);
 
     $notificationService->shouldNotReceive('sendMonitorDownNotification');
@@ -232,7 +231,7 @@ test('if monitor is down and passed 10 minutes should send notification again', 
 
     $mockCheck = MonitorCheck::factory()->make(['monitor_id' => $monitor->id, 'status' => 'down']);
     $checkService->shouldReceive('createCheck')
-        ->twice()
+        ->once()
         ->andReturn($mockCheck);
 
     $notificationService->shouldReceive('sendMonitorStillDownNotification')
