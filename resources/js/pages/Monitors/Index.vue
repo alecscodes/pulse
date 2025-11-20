@@ -172,11 +172,7 @@ const actionSheetButtons = computed(() => {
             </div>
 
             <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card
-                    v-for="(monitor, index) in monitors"
-                    :key="monitor.id"
-                    :class="[index % 3 === 1 && 'bg-muted/70']"
-                >
+                <Card v-for="monitor in monitors" :key="monitor.id">
                     <CardHeader>
                         <div class="flex items-start justify-between">
                             <div class="flex-1">
