@@ -202,7 +202,7 @@ class MonitorCheckService
             }
 
             $data = json_decode($output, true);
-            if (! is_array($data)) {
+            if (! \is_array($data)) {
                 return false;
             }
 

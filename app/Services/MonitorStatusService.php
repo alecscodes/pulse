@@ -33,13 +33,11 @@ class MonitorStatusService
             $isContentValidationFailure = $checkResult['status_code'] === 200 && $checkResult['content_valid'] === false;
             $maxRetries = $isContentValidationFailure ? 3 : 1;
             $delay = $isContentValidationFailure ? 2 : 3;
-            $lastCheck = null;
 
             for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
                 sleep($delay);
 
                 $retryResult = $this->checkService->checkMonitor($monitor);
-                $lastCheck = $this->checkService->createCheck($monitor, $retryResult);
 
                 if ($retryResult['status'] === 'up') {
                     $this->handleMonitorUp($monitor);
@@ -53,7 +51,7 @@ class MonitorStatusService
                 }
             }
 
-            $this->handleMonitorDown($monitor, $lastCheck);
+            $this->handleMonitorDown($monitor);
         } else {
             $this->handleMonitorUp($monitor);
         }
@@ -90,7 +88,7 @@ class MonitorStatusService
     /**
      * Handle monitor being down.
      */
-    protected function handleMonitorDown(Monitor $monitor, MonitorCheck $check): void
+    protected function handleMonitorDown(Monitor $monitor): void
     {
         /** @var MonitorDowntime|null $currentDowntime */
         $currentDowntime = $monitor->currentDowntime()->first();
