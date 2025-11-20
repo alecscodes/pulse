@@ -24,24 +24,36 @@ class MonitorStatusService
             return; // Skip checks if no internet connectivity
         }
 
-        // Perform the check
         $checkResult = $this->checkService->checkMonitor($monitor);
         $this->checkService->createCheck($monitor, $checkResult);
 
         // If check failed, wait 3 seconds and check again
         if ($checkResult['status'] === 'down') {
-            sleep(3);
+            // HTTP 200 but content validation failed - retry 3 times
+            $isContentValidationFailure = $checkResult['status_code'] === 200 && $checkResult['content_valid'] === false;
+            $maxRetries = $isContentValidationFailure ? 3 : 1;
+            $delay = $isContentValidationFailure ? 2 : 3;
+            $lastCheck = null;
 
-            $recheckResult = $this->checkService->checkMonitor($monitor);
-            $recheck = $this->checkService->createCheck($monitor, $recheckResult);
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                sleep($delay);
 
-            // If second check also failed, handle downtime
-            if ($recheckResult['status'] === 'down') {
-                $this->handleMonitorDown($monitor, $recheck);
-            } else {
-                // Monitor recovered quickly, no downtime recorded
-                $this->handleMonitorUp($monitor);
+                $retryResult = $this->checkService->checkMonitor($monitor);
+                $lastCheck = $this->checkService->createCheck($monitor, $retryResult);
+
+                if ($retryResult['status'] === 'up') {
+                    $this->handleMonitorUp($monitor);
+
+                    return;
+                }
+
+                // If failure type changed (e.g., content validation -> HTTP failure), stop retrying
+                if ($retryResult['status_code'] !== 200 && $retryResult['status_code'] !== null) {
+                    break;
+                }
             }
+
+            $this->handleMonitorDown($monitor, $lastCheck);
         } else {
             $this->handleMonitorUp($monitor);
         }
@@ -212,6 +224,7 @@ class MonitorStatusService
 
         $monitors->chunk(10)
             ->each(function (\Illuminate\Database\Eloquent\Collection $monitors) {
+                /** @var Monitor $monitor */
                 foreach ($monitors as $monitor) {
                     $this->processMonitorCheck($monitor);
                 }
