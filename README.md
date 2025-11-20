@@ -1,8 +1,7 @@
 # 🫀 Pulse
 
-> **Website uptime monitoring app** built with Laravel & Vue.js  
-> Track websites, get notified when they go down, and monitor performance metrics.
-
+> **Website uptime monitoring** built with Laravel & Vue  
+> Track websites and get instant notifications when they go down.
 ---
 
 ## 🎥 Deploy Demo
@@ -27,12 +26,21 @@
 ## 📋 Table of Contents
 
 - [Quick Start](#-quick-start)
+  - [Deploy](#-deploy)
 - [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Configuration](#️-configuration)
 - [Usage](#-usage)
-- [Development](#-development)
+  - [Content Validation Rules](#content-validation-rules)
+- [Configuration](#️-configuration)
+  - [Telegram Notifications](#-telegram-notifications)
+  - [Registration Control](#-registration-control)
+  - [IP Banning](#-ip-banning)
+  - [Automatic Updates](#-automatic-updates)
 - [Artisan Commands](#-artisan-commands)
+- [Tech Stack](#-tech-stack)
+- [Development](#-development)
+  - [Running Tests](#running-tests)
+  - [Code Quality](#code-quality)
+  - [Frontend Development](#frontend-development)
 - [License](#-license)
 - [Support](#-support)
 
@@ -52,33 +60,7 @@ The `deploy.sh` script will:
 
 - Set up `.env` and prompt for `APP_URL`
 - Ask you to choose between **Docker** or **Standard** deployment (first time only)
-- Remember your choice for future deployments
-- Handle all setup automatically
-
-**Docker:** Uses `docker compose up -d --build --remove-orphans` (queue worker runs in container)  
-**Standard:** Manual setup with automatic cron jobs for scheduler and queue worker
-
-**Note:** Queue worker must be running for down monitors to be checked every 3 seconds.
-
-**Docker User Mapping:** Docker containers automatically run as your current user (matching host user ID/group ID), ensuring files created in Docker have the same ownership as your host files. No permission changes needed!
-
-### 💻 Local Development
-
-For local development without Docker:
-
-```bash
-git clone https://github.com/alecscodes/pulse.git
-cd pulse
-composer install && npm install
-cp .env.example .env
-php artisan key:generate
-touch database/database.sqlite && php artisan migrate
-npm run build && composer run dev
-```
-
-Visit `http://localhost:8000` to access the application.
-
----
+- Remember your choice for future deployments (automatically updates if already installed)
 
 ## ✨ Features
 
@@ -86,7 +68,7 @@ Visit `http://localhost:8000` to access the application.
 - 🌐 **HTTP/HTTPS support** with custom headers & query parameters
 - ✅ **Content validation** to ensure your site returns expected content
 - 📱 **Telegram notifications** for instant alerts when sites go down
-- 📊 **Dashboard & analytics** to track uptime and performance
+- 📊 **Dashboard & analytics** to track uptime and response time
 - 🔐 **Two-factor authentication** for enhanced security
 - 🌙 **Dark mode** for comfortable monitoring
 - 📱 **Mobile-first responsive design** - monitor from anywhere
@@ -94,14 +76,26 @@ Visit `http://localhost:8000` to access the application.
 
 ---
 
-## 🛠 Tech Stack
+## 📖 Usage
 
-| Category | Technology |
-|----------|-----------|
-| **Backend** | Laravel 12 · PHP 8.4+ |
-| **Frontend** | Vue 3 · Inertia.js v2 · Tailwind CSS v4 |
-| **Database** | SQLite (MySQL/PostgreSQL supported) |
-| **Testing** | Pest PHP v4 |
+Getting started with monitoring:
+
+1. Navigate to **Monitors → Create Monitor**
+2. Enter your website URL, name, and desired check interval
+3. Optionally configure:
+   - Custom headers
+   - Query parameters
+   - Content validation rules
+4. Monitors run automatically every minute via the Laravel scheduler
+
+### Content Validation Rules
+
+Configure validation to ensure your site returns expected content:
+
+- **Title validation**: Must match exactly (e.g., setting "Welcome to My Site" will only pass if the page title is exactly "Welcome to My Site")
+- **Content validation**: Must include the phrase (e.g., setting "Welcome to our website" will pass if the page content contains this phrase anywhere, like "Welcome to our website for all visitors" or "You are welcome to our website anytime")
+
+You can set either validation type independently, or both together. When both are set, both conditions must pass.
 
 ---
 
@@ -130,7 +124,7 @@ Pulse automatically bans IPs for suspicious activity:
 
 - 2 failed login attempts
 - Accessing non-existent routes (e.g., `/wp-admin`)
-- Detects and bans related IPs (client, forwarded, proxy, server)
+- Automatically detects and bans related IPs (client, forwarded, proxy, server)
 
 **Unban commands:**
 
@@ -149,57 +143,12 @@ Pulse automatically checks for and applies updates every minute via the Laravel 
 - **Autonomous updates**: The application checks for new commits from the Git repository every minute
 - **Smart skipping**: Updates are skipped if no new commits are available
 - **Docker support**: Commands run correctly in Docker environments via shell execution
+- **Update process**: Automatically pulls changes, installs dependencies, builds assets, runs migrations, and optimizes cache
 
 You can also manually trigger an update:
 
 ```bash
 php artisan git:update
-```
-
-**Note:** The update process will automatically:
-
-- Pull latest changes from the repository
-- Install/update dependencies (Composer & NPM)
-- Build frontend assets
-- Run database migrations
-- Clear and optimize caches
-
----
-
-## 📖 Usage
-
-Getting started with monitoring is simple:
-
-1. Navigate to **Monitors → Create Monitor**
-2. Enter your website URL, name, and desired check interval
-3. Optionally configure:
-   - Custom headers
-   - Query parameters
-   - Content validation rules
-4. Monitors run automatically every minute via the Laravel scheduler
-
----
-
-## 🧪 Development
-
-### Running Tests
-
-```bash
-php artisan test          # Run all tests
-```
-
-### Code Quality
-
-```bash
-vendor/bin/pint           # Format code with Laravel Pint
-composer run analyze      # Run static analysis (PHPStan)
-```
-
-### Frontend Development
-
-```bash
-npm run dev              # Start Vite dev server with hot reload
-npm run build            # Build for production
 ```
 
 ---
@@ -214,6 +163,62 @@ Pulse includes several helpful Artisan commands:
 | `php artisan ip:unban <ip>` | Unban a specific IP address |
 | `php artisan ip:unban --all` | Unban all banned IP addresses |
 | `php artisan monitors:check` | Manually trigger monitor checks |
+
+---
+
+## 🛠 Tech Stack
+
+| Category | Technology |
+|----------|-----------|
+| **Backend** | Laravel 12 · PHP 8.4+ |
+| **Frontend** | Vue 3 · Inertia v2 · Tailwind CSS v4 |
+| **Database** | SQLite (MySQL/PostgreSQL supported) |
+| **Deployment** | Docker · Standard Hosting |
+| **Testing** | Pest PHP v4 |
+| **Code Quality** | Larastan (PHPStan) · Laravel Pint · ESLint · Prettier |
+
+---
+
+## 🧪 Development
+
+For local development:
+
+```bash
+git clone https://github.com/alecscodes/pulse.git
+cd pulse
+composer install && npm install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite && php artisan migrate
+npm run build && composer run dev
+```
+
+Visit `http://localhost:8000` to access the application.
+
+---
+
+### Running Tests
+
+```bash
+php artisan test          # Run all tests
+```
+
+### Code Quality
+
+```bash
+vendor/bin/pint           # Format code with Laravel Pint
+composer run analyze      # Run static analysis (PHPStan)
+npm run lint              # Lint and fix JavaScript/TypeScript/Vue code (ESLint)
+npm run format            # Format frontend code (Prettier)
+npm run format:check      # Check frontend code formatting (Prettier)
+```
+
+### Frontend Development
+
+```bash
+npm run dev              # Start Vite dev server with hot reload
+npm run build            # Build for production
+```
 
 ---
 
