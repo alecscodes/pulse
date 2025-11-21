@@ -5,7 +5,7 @@ return [
     'manifest' => [
         'name' => env('APP_NAME', 'Pulse'),
         'short_name' => 'Pulse',
-        'start_url' => '/',
+        'start_url' => env('APP_URL', ''),
         'background_color' => '#ffffff',
         'theme_color' => '#0a0a0a',
         'display' => 'standalone',
