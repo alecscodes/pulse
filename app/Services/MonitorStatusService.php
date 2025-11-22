@@ -27,18 +27,18 @@ class MonitorStatusService
         $checkResult = $this->checkService->checkMonitor($monitor);
         $this->checkService->createCheck($monitor, $checkResult);
 
-        // If check failed, wait 3 seconds and check again
+        // If check failed, retry with appropriate strategy
         if ($checkResult['status'] === 'down') {
-            // HTTP 200 but content validation failed - retry 3 times with longer delay
-            // This gives Puppeteer time to recover from resource exhaustion
+            $initialFailureTime = now();
             $isContentValidationFailure = $checkResult['status_code'] === 200 && $checkResult['content_valid'] === false;
-            $maxRetries = $isContentValidationFailure ? 3 : 1;
-            $delay = $isContentValidationFailure ? 3 : 3;
+            $maxRetries = $isContentValidationFailure ? 5 : 3;
+            $retryDelay = $isContentValidationFailure ? 2 : 3;
 
             for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-                sleep($delay);
+                sleep($retryDelay);
 
                 $retryResult = $this->checkService->checkMonitor($monitor);
+                $this->checkService->createCheck($monitor, $retryResult);
 
                 if ($retryResult['status'] === 'up') {
                     $this->handleMonitorUp($monitor);
@@ -46,13 +46,13 @@ class MonitorStatusService
                     return;
                 }
 
-                // If failure type changed (e.g., content validation -> HTTP failure), stop retrying
-                if ($retryResult['status_code'] !== 200 && $retryResult['status_code'] !== null) {
+                // Stop retrying if failure type changed
+                if ($isContentValidationFailure && $retryResult['status_code'] !== 200 && $retryResult['status_code'] !== null) {
                     break;
                 }
             }
 
-            $this->handleMonitorDown($monitor);
+            $this->handleMonitorDown($monitor, $initialFailureTime);
         } else {
             $this->handleMonitorUp($monitor);
         }
@@ -88,17 +88,20 @@ class MonitorStatusService
 
     /**
      * Handle monitor being down.
+     *
+     * @param  \Illuminate\Support\Carbon|null  $startedAt  The time when the downtime actually started (before retries)
      */
-    protected function handleMonitorDown(Monitor $monitor): void
+    protected function handleMonitorDown(Monitor $monitor, ?\Illuminate\Support\Carbon $startedAt = null): void
     {
         /** @var MonitorDowntime|null $currentDowntime */
         $currentDowntime = $monitor->currentDowntime()->first();
 
         if (! $currentDowntime) {
-            // Start new downtime
+            // Start new downtime with the initial failure time (best practice for accurate tracking)
+            $downtimeStartTime = $startedAt ?? now();
             MonitorDowntime::create([
                 'monitor_id' => $monitor->id,
-                'started_at' => now(),
+                'started_at' => $downtimeStartTime,
                 'last_notification_at' => now(),
             ]);
 
