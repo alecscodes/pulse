@@ -174,6 +174,7 @@ class MonitorCheckService
 
     /**
      * Validate content using Puppeteer.
+     * Retries once on failure to handle transient resource issues.
      */
     private function validateWithPuppeteer(Monitor $monitor): bool
     {
@@ -181,47 +182,54 @@ class MonitorCheckService
             return false;
         }
 
-        try {
-            $puppeteerService = app(\App\Services\PuppeteerInstallationService::class);
-            $chromiumPath = $puppeteerService->getChromiumPath();
-
-            $config = [
-                'url' => $monitor->url,
-                'expectedTitle' => $monitor->expected_title,
-                'expectedContent' => $monitor->expected_content,
-                'chromiumPath' => $chromiumPath,
-            ];
-
-            $configJson = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            $script = $this->getPuppeteerScript($configJson);
-            $basePath = base_path();
-            $output = trim(shell_exec("cd {$basePath} && node -e ".escapeshellarg($script).' 2>/dev/null') ?: '');
-
-            if (empty($output)) {
-                return false;
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            if ($attempt > 0) {
+                sleep(1);
             }
 
-            $data = json_decode($output, true);
-            if (! \is_array($data)) {
-                return false;
+            try {
+                $puppeteerService = app(\App\Services\PuppeteerInstallationService::class);
+                $chromiumPath = $puppeteerService->getChromiumPath();
+
+                $config = [
+                    'url' => $monitor->url,
+                    'expectedTitle' => $monitor->expected_title,
+                    'expectedContent' => $monitor->expected_content,
+                    'chromiumPath' => $chromiumPath,
+                ];
+
+                $configJson = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                $script = $this->getPuppeteerScript($configJson);
+                $basePath = base_path();
+                $output = trim(shell_exec("cd {$basePath} && node -e ".escapeshellarg($script).' 2>&1') ?: '');
+
+                if (empty($output)) {
+                    continue;
+                }
+
+                $data = json_decode($output, true);
+                if (! \is_array($data) || isset($data['error'])) {
+                    continue;
+                }
+
+                // Validate title: must match exactly if expected
+                $expectedTitle = trim($monitor->expected_title ?? '');
+                $titleValid = empty($expectedTitle) || trim($data['title'] ?? '') === $expectedTitle;
+
+                // Validate content: must be found if expected
+                $expectedContent = trim($monitor->expected_content ?? '');
+                $textContent = $data['textContent'] ?? '';
+                $normalizedTextContent = preg_replace('/\s+/', ' ', $textContent);
+                $normalizedExpectedContent = preg_replace('/\s+/', ' ', $expectedContent);
+                $contentValid = empty($expectedContent) || (stripos($normalizedTextContent, $normalizedExpectedContent) !== false);
+
+                return $titleValid && $contentValid;
+            } catch (\Exception $e) {
+                // Continue to retry on exception
             }
-
-            // Validate title: must match exactly if expected
-            $expectedTitle = trim($monitor->expected_title ?? '');
-            $titleValid = empty($expectedTitle) || trim($data['title'] ?? '') === $expectedTitle;
-
-            // Validate content: must be found if expected
-            // Normalize whitespace in both strings to handle newlines and extra spaces
-            $expectedContent = trim($monitor->expected_content ?? '');
-            $textContent = $data['textContent'] ?? '';
-            $normalizedTextContent = preg_replace('/\s+/', ' ', $textContent);
-            $normalizedExpectedContent = preg_replace('/\s+/', ' ', $expectedContent);
-            $contentValid = empty($expectedContent) || (stripos($normalizedTextContent, $normalizedExpectedContent) !== false);
-
-            return $titleValid && $contentValid;
-        } catch (\Exception $e) {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -233,8 +241,9 @@ class MonitorCheckService
 import puppeteer from 'puppeteer-core';
 const config = {$configJson};
 (async () => {
+  let browser = null;
   try {
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       executablePath: config.chromiumPath,
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-extensions', '--disable-background-networking', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-breakpad', '--disable-client-side-phishing-detection', '--disable-default-apps', '--disable-features=TranslateUI', '--disable-hang-monitor', '--disable-ipc-flooding-protection', '--disable-popup-blocking', '--disable-prompt-on-repost', '--disable-renderer-backgrounding', '--disable-sync', '--disable-translate', '--metrics-recording-only', '--no-first-run', '--safebrowsing-disable-auto-update', '--enable-automation', '--password-store=basic', '--use-mock-keychain', '--memory-pressure-off']
@@ -244,15 +253,26 @@ const config = {$configJson};
     await page.goto(config.url, {waitUntil: 'networkidle2', timeout: 30000});
     const title = await page.title();
     const textContent = await page.evaluate(() => document.body.textContent || '');
-    await browser.close();
     const result = {
       title: title || '',
       textContent: textContent || '',
     };
     console.log(JSON.stringify(result));
   } catch(e) {
-    console.log(JSON.stringify({title: '', textContent: '', error: e.message}));
-    process.exit(1);
+    const errorResult = {
+      title: '',
+      textContent: '',
+      error: e.message || String(e)
+    };
+    console.log(JSON.stringify(errorResult));
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        // Ignore close errors
+      }
+    }
   }
 })();
 SCRIPT;

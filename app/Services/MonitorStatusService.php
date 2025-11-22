@@ -29,10 +29,11 @@ class MonitorStatusService
 
         // If check failed, wait 3 seconds and check again
         if ($checkResult['status'] === 'down') {
-            // HTTP 200 but content validation failed - retry 3 times
+            // HTTP 200 but content validation failed - retry 3 times with longer delay
+            // This gives Puppeteer time to recover from resource exhaustion
             $isContentValidationFailure = $checkResult['status_code'] === 200 && $checkResult['content_valid'] === false;
             $maxRetries = $isContentValidationFailure ? 3 : 1;
-            $delay = $isContentValidationFailure ? 2 : 3;
+            $delay = $isContentValidationFailure ? 3 : 3;
 
             for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
                 sleep($delay);
