@@ -90,7 +90,7 @@ class GitUpdateService
     /**
      * Perform the update by pulling latest changes.
      *
-     * @return array{success: bool, message: string, output: string|null, error: string|null}
+     * @return array{success: bool, message: string, output: string|null, error: string|null, updated: bool}
      */
     public function performUpdate(): array
     {
@@ -99,6 +99,7 @@ class GitUpdateService
             'message' => '',
             'output' => null,
             'error' => null,
+            'updated' => false,
         ];
 
         try {
@@ -110,6 +111,7 @@ class GitUpdateService
                 $result['success'] = true;
                 $result['message'] = 'No updates available: local branch is up to date with remote.';
                 $result['output'] = 'No commits to pull from origin.';
+                $result['updated'] = false;
 
                 return $result;
             }
@@ -132,7 +134,7 @@ class GitUpdateService
     /**
      * Run Docker update process: reset git to match remote exactly, then run deployment.
      *
-     * @return array{success: bool, message: string, output: string|null, error: string|null}
+     * @return array{success: bool, message: string, output: string|null, error: string|null, updated: bool}
      */
     protected function runDockerUpdate(string $workingDir): array
     {
@@ -141,6 +143,7 @@ class GitUpdateService
             'message' => '',
             'output' => null,
             'error' => null,
+            'updated' => false,
         ];
 
         try {
@@ -182,6 +185,7 @@ class GitUpdateService
 
             $result['success'] = true;
             $result['message'] = 'Update completed successfully';
+            $result['updated'] = true;
         } catch (\Exception $e) {
             $result['error'] = $e->getMessage();
             $result['message'] = 'Update failed: '.$e->getMessage();
@@ -382,7 +386,7 @@ class GitUpdateService
     /**
      * Run the deploy.sh script for non-Docker deployments.
      *
-     * @return array{success: bool, message: string, output: string|null, error: string|null}
+     * @return array{success: bool, message: string, output: string|null, error: string|null, updated: bool}
      */
     protected function runDeployScript(string $workingDir): array
     {
@@ -391,6 +395,7 @@ class GitUpdateService
             'message' => '',
             'output' => null,
             'error' => null,
+            'updated' => false,
         ];
 
         $deployScript = $workingDir.'/deploy.sh';
@@ -407,6 +412,7 @@ class GitUpdateService
             $result['success'] = true;
             $result['message'] = 'Update completed successfully';
             $result['output'] = trim($deploy->output());
+            $result['updated'] = true;
         } else {
             $result['error'] = trim($deploy->errorOutput());
             $result['message'] = 'Update failed';

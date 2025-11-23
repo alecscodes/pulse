@@ -31,10 +31,15 @@ class GitUpdateCommand extends Command
         $result = $updateService->performUpdate();
 
         if ($result['success']) {
-            \Illuminate\Support\Facades\Log::channel('database')->info('Git update successful', [
-                'category' => 'system',
-                'message' => $result['message'],
-            ]);
+            $updated = $result['updated'] ?? false;
+            \Illuminate\Support\Facades\Log::channel('database')->info(
+                $updated ? 'Git update performed' : 'Git update check - up to date',
+                [
+                    'category' => 'system',
+                    'message' => $result['message'],
+                    'action' => $updated ? 'update' : 'check',
+                ]
+            );
 
             $this->info('✓ '.$result['message']);
 
