@@ -68,6 +68,7 @@ The `deploy.sh` script will:
 - 🔄 **Multi-site monitoring** with custom check intervals
 - 🌐 **HTTP/HTTPS support** with custom headers & query parameters
 - 🔒 **SSL certificate monitoring** - automatic daily checks with expiration alerts
+- 🌍 **Domain expiration monitoring** - automatic daily checks with expiration alerts via WHOIS
 - ✅ **Content validation** to ensure your site returns expected content
 - 📱 **Telegram notifications** for instant alerts when sites go down
 - 📊 **Dashboard & analytics** to track uptime and response time
@@ -111,6 +112,20 @@ Pulse automatically monitors SSL certificates for all HTTPS monitors daily:
 
 ```bash
 php artisan ssl:check
+```
+
+### 🌍 Domain Expiration Monitoring
+
+Pulse automatically monitors domain expiration for all active monitors daily:
+
+- Queries WHOIS servers to check expiration dates
+- Sends Telegram notifications when domains expire within 30 days or are already expired
+- Stores expiration details with each monitor
+
+**Manual check:**
+
+```bash
+php artisan domain:check
 ```
 
 ---
@@ -180,6 +195,7 @@ Pulse includes several helpful Artisan commands:
 | `php artisan ip:unban --all` | Unban all banned IP addresses |
 | `php artisan monitors:check` | Manually trigger monitor checks |
 | `php artisan ssl:check` | Manually check SSL certificates for all active HTTPS monitors (runs automatically daily) |
+| `php artisan domain:check` | Manually check domain expiration for all active monitors (runs automatically daily) |
 
 ---
 
