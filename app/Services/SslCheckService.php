@@ -35,6 +35,15 @@ class SslCheckService
             $socket = $this->connectToSsl($host, $port);
 
             if (! $socket) {
+                \Illuminate\Support\Facades\Log::channel('database')->error('SSL connection failed', [
+                    'category' => 'ssl',
+                    'monitor_id' => $monitor->id,
+                    'monitor_name' => $monitor->name,
+                    'host' => $host,
+                    'port' => $port,
+                    'error' => 'Connection failed',
+                ]);
+
                 return $this->errorResult('Connection failed');
             }
 
@@ -42,13 +51,24 @@ class SslCheckService
             fclose($socket);
 
             if (! $cert) {
+                \Illuminate\Support\Facades\Log::channel('database')->error('SSL certificate retrieval failed', [
+                    'category' => 'ssl',
+                    'monitor_id' => $monitor->id,
+                    'monitor_name' => $monitor->name,
+                    'host' => $host,
+                    'port' => $port,
+                    'error' => 'Could not retrieve certificate',
+                ]);
+
                 return $this->errorResult('Could not retrieve certificate');
             }
 
-            return $this->parseCertificate($cert, $host);
+            return $this->parseCertificate($cert, $host, $monitor);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::channel('database')->error('SSL check failed', [
                 'category' => 'ssl',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
                 'host' => $host,
                 'error' => $e->getMessage(),
             ]);
@@ -119,11 +139,19 @@ class SslCheckService
     /**
      * Parse certificate information.
      */
-    private function parseCertificate(mixed $cert, string $host): array
+    private function parseCertificate(mixed $cert, string $host, Monitor $monitor): array
     {
         $certInfo = openssl_x509_parse($cert);
 
         if (! $certInfo) {
+            \Illuminate\Support\Facades\Log::channel('database')->error('SSL certificate parsing failed', [
+                'category' => 'ssl',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
+                'host' => $host,
+                'error' => 'Could not parse certificate',
+            ]);
+
             return $this->errorResult('Could not parse certificate');
         }
 
@@ -136,6 +164,8 @@ class SslCheckService
         if ($daysUntilExpiration <= 30) {
             \Illuminate\Support\Facades\Log::channel('database')->warning('SSL certificate expiring soon', [
                 'category' => 'ssl',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
                 'host' => $host,
                 'days_until_expiration' => $daysUntilExpiration,
             ]);
@@ -144,6 +174,8 @@ class SslCheckService
         if (! $isValid) {
             \Illuminate\Support\Facades\Log::channel('database')->error('SSL certificate expired', [
                 'category' => 'ssl',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
                 'host' => $host,
             ]);
         }

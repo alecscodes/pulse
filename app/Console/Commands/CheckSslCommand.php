@@ -19,6 +19,10 @@ class CheckSslCommand extends Command
     ): int {
         $this->info('Checking SSL certificates...');
 
+        \Illuminate\Support\Facades\Log::channel('database')->info('SSL check command started', [
+            'category' => 'system',
+        ]);
+
         $monitors = Monitor::where('is_active', true)
             ->where('url', 'like', 'https://%')
             ->get();
@@ -32,7 +36,7 @@ class CheckSslCommand extends Command
         $bar = $this->output->createProgressBar($monitors->count());
         $bar->start();
 
-        $stats = ['checked' => 0, 'expiring' => 0, 'expired' => 0];
+        $stats = ['checked' => 0, 'expiring' => 0, 'expired' => 0, 'errors' => 0];
 
         foreach ($monitors as $monitor) {
             $sslResult = $sslService->checkSslCertificate($monitor);
@@ -41,7 +45,17 @@ class CheckSslCommand extends Command
             $stats['checked']++;
 
             if (! $sslResult['valid']) {
-                $stats['expired']++;
+                if ($sslResult['error_message']) {
+                    $stats['errors']++;
+                    \Illuminate\Support\Facades\Log::channel('database')->warning('SSL check error', [
+                        'category' => 'ssl',
+                        'monitor_id' => $monitor->id,
+                        'monitor_name' => $monitor->name,
+                        'error' => $sslResult['error_message'],
+                    ]);
+                } else {
+                    $stats['expired']++;
+                }
                 $notificationService->sendSslExpiredNotification($monitor, $sslResult);
             } elseif ($sslService->isExpiringSoon($sslResult['days_until_expiration'])) {
                 $stats['expiring']++;
