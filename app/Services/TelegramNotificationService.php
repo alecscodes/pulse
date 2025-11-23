@@ -148,4 +148,41 @@ class TelegramNotificationService
 
         return $this->sendNotification($message);
     }
+
+    /**
+     * Send a domain expiring notification.
+     *
+     * @param  array{expires_at: \Carbon\Carbon|null, days_until_expiration: int|null, error_message: string|null}  $domainResult
+     */
+    public function sendDomainExpiringNotification(Monitor $monitor, array $domainResult): bool
+    {
+        $days = $domainResult['days_until_expiration'] ?? 0;
+        $expiryDate = $domainResult['expires_at']?->format('Y-m-d') ?? 'Unknown';
+
+        $message = "🌐 Domain Expiring Soon\n\n"
+            ."<b>Monitor:</b> {$monitor->name}\n"
+            ."<b>URL:</b> {$monitor->url}\n"
+            ."<b>Days until expiration:</b> {$days}\n"
+            ."<b>Expires on:</b> {$expiryDate}";
+
+        return $this->sendNotification($message);
+    }
+
+    /**
+     * Send a domain expired notification.
+     *
+     * @param  array{expires_at: \Carbon\Carbon|null, days_until_expiration: int|null, error_message: string|null}  $domainResult
+     */
+    public function sendDomainExpiredNotification(Monitor $monitor, array $domainResult): bool
+    {
+        $expiryDate = $domainResult['expires_at']?->format('Y-m-d') ?? 'Unknown';
+
+        $message = "🚨 Domain Expired\n\n"
+            ."<b>Monitor:</b> {$monitor->name}\n"
+            ."<b>URL:</b> {$monitor->url}\n"
+            ."<b>Expired on:</b> {$expiryDate}\n"
+            .'⚠️ <b>Action required:</b> Renew domain immediately!';
+
+        return $this->sendNotification($message);
+    }
 }

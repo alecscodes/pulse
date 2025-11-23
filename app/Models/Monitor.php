@@ -21,6 +21,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $expected_content
  * @property bool $is_active
  * @property int $check_interval
+ * @property \Illuminate\Support\Carbon|null $domain_expires_at
+ * @property int|null $domain_days_until_expiration
+ * @property string|null $domain_error_message
+ * @property \Illuminate\Support\Carbon|null $domain_last_checked_at
  * @property \Illuminate\Support\Carbon $created_at
  * @property \Illuminate\Support\Carbon $updated_at
  * @property \Illuminate\Database\Eloquent\Collection<int, MonitorCheck> $checks
@@ -49,6 +53,10 @@ class Monitor extends Model
         'expected_content',
         'is_active',
         'check_interval',
+        'domain_expires_at',
+        'domain_days_until_expiration',
+        'domain_error_message',
+        'domain_last_checked_at',
     ];
 
     /**
@@ -64,6 +72,9 @@ class Monitor extends Model
             'enable_content_validation' => 'boolean',
             'is_active' => 'boolean',
             'check_interval' => 'integer',
+            'domain_expires_at' => 'date',
+            'domain_days_until_expiration' => 'integer',
+            'domain_last_checked_at' => 'datetime',
         ];
     }
 

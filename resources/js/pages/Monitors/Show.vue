@@ -53,6 +53,10 @@ interface Monitor {
     expected_content?: string;
     is_active: boolean;
     check_interval: number;
+    domain_expires_at?: string;
+    domain_days_until_expiration?: number;
+    domain_error_message?: string;
+    domain_last_checked_at?: string;
     checks?: Check[];
     downtimes?: Downtime[];
 }
@@ -122,6 +126,22 @@ function getDowntimeDuration(downtime: Downtime): number | undefined {
             new Date(downtime.started_at).getTime()) /
             1000,
     );
+}
+
+function getDomainStatus(days?: number | null) {
+    if (days === null || days === undefined) {
+        return {
+            variant: 'secondary' as const,
+            color: 'text-muted-foreground',
+        };
+    }
+    if (days <= 0) {
+        return { variant: 'destructive' as const, color: 'text-destructive' };
+    }
+    if (days <= 30) {
+        return { variant: 'default' as const, color: 'text-orange-500' };
+    }
+    return { variant: 'secondary' as const, color: 'text-muted-foreground' };
 }
 
 function deleteMonitor(): void {
@@ -253,6 +273,76 @@ const actionSheetButtons = computed(() => [
                             >
                                 Expected Title: {{ monitor.expected_title }}
                             </p>
+                        </div>
+
+                        <div
+                            v-if="
+                                monitor.domain_expires_at ||
+                                monitor.domain_error_message
+                            "
+                            class="mt-4 rounded-md border p-3"
+                        >
+                            <p class="mb-2 text-xs font-medium">
+                                Domain Expiration
+                            </p>
+                            <div
+                                v-if="monitor.domain_error_message"
+                                class="text-xs text-destructive"
+                            >
+                                Error: {{ monitor.domain_error_message }}
+                            </div>
+                            <div
+                                v-else-if="monitor.domain_expires_at"
+                                class="space-y-1"
+                            >
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-muted-foreground"
+                                        >Expires:</span
+                                    >
+                                    <span
+                                        :class="`font-medium ${getDomainStatus(monitor.domain_days_until_expiration).color}`"
+                                    >
+                                        {{
+                                            new Date(
+                                                monitor.domain_expires_at,
+                                            ).toLocaleDateString()
+                                        }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-muted-foreground"
+                                        >Days Remaining:</span
+                                    >
+                                    <Badge
+                                        :variant="
+                                            getDomainStatus(
+                                                monitor.domain_days_until_expiration,
+                                            ).variant
+                                        "
+                                    >
+                                        {{
+                                            monitor.domain_days_until_expiration !==
+                                            null
+                                                ? monitor.domain_days_until_expiration
+                                                : 'N/A'
+                                        }}
+                                    </Badge>
+                                </div>
+                                <div
+                                    v-if="monitor.domain_last_checked_at"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Last checked:
+                                    {{
+                                        new Date(
+                                            monitor.domain_last_checked_at,
+                                        ).toLocaleString()
+                                    }}
+                                </div>
+                            </div>
+                            <div v-else class="text-xs text-muted-foreground">
+                                No domain expiration data available
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

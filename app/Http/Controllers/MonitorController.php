@@ -38,6 +38,9 @@ class MonitorController extends Controller
                     'last_checked_at' => $latestCheck?->checked_at?->toISOString(),
                     'response_time' => $latestCheck?->response_time,
                     'is_down' => $isDown,
+                    'domain_expires_at' => $monitor->domain_expires_at?->toISOString(),
+                    'domain_days_until_expiration' => $monitor->domain_days_until_expiration,
+                    'domain_error_message' => $monitor->domain_error_message,
                 ];
             });
 
@@ -106,6 +109,10 @@ class MonitorController extends Controller
                 'expected_content' => $monitor->expected_content,
                 'is_active' => $monitor->is_active,
                 'check_interval' => $monitor->check_interval,
+                'domain_expires_at' => $monitor->domain_expires_at?->toISOString(),
+                'domain_days_until_expiration' => $monitor->domain_days_until_expiration,
+                'domain_error_message' => $monitor->domain_error_message,
+                'domain_last_checked_at' => $monitor->domain_last_checked_at?->toISOString(),
                 'checks' => $monitor->checks->map(function (\App\Models\MonitorCheck $check) {
                     return [
                         'id' => $check->id,
