@@ -58,6 +58,13 @@ class IpBanService
         foreach ($allIps as $ip) {
             Cache::forget("banned_ip_{$ip}");
         }
+
+        \Illuminate\Support\Facades\Log::channel('database')->warning('IP banned', [
+            'category' => 'security',
+            'ips' => $allIps,
+            'reason' => $reason,
+            'path' => $request->path(),
+        ]);
     }
 
     public function recordFailedLogin(Request $request): bool
@@ -73,6 +80,12 @@ class IpBanService
 
         Cache::add($key, 0, self::CACHE_TTL);
         $count = Cache::increment($key);
+
+        \Illuminate\Support\Facades\Log::channel('database')->warning('Failed login attempt', [
+            'category' => 'security',
+            'ip' => $primaryIp,
+            'attempt_count' => $count,
+        ]);
 
         if ($count >= self::MAX_LOGIN_ATTEMPTS) {
             $this->ban($request, 'Failed login attempts');

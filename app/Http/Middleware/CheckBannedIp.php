@@ -16,6 +16,11 @@ class CheckBannedIp
     public function handle(Request $request, Closure $next): Response
     {
         if ($this->ipBanService->isBanned($request)) {
+            \Illuminate\Support\Facades\Log::channel('database')->warning('Banned IP access attempt', [
+                'category' => 'security',
+                'ip' => $request->ip(),
+                'path' => $request->path(),
+            ]);
             abort(403, 'Access denied');
         }
 

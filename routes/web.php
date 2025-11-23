@@ -46,6 +46,8 @@ Route::get('dashboard', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('monitors', MonitorController::class);
+    Route::get('logs', [\App\Http\Controllers\LogController::class, 'index'])->name('logs.index');
+    Route::delete('logs', [\App\Http\Controllers\LogController::class, 'destroy'])->name('logs.destroy');
 });
 
 require __DIR__.'/settings.php';

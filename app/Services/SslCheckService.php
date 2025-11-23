@@ -45,8 +45,14 @@ class SslCheckService
                 return $this->errorResult('Could not retrieve certificate');
             }
 
-            return $this->parseCertificate($cert);
+            return $this->parseCertificate($cert, $host);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::channel('database')->error('SSL check failed', [
+                'category' => 'ssl',
+                'host' => $host,
+                'error' => $e->getMessage(),
+            ]);
+
             return $this->errorResult($e->getMessage());
         }
     }
@@ -113,7 +119,7 @@ class SslCheckService
     /**
      * Parse certificate information.
      */
-    private function parseCertificate(mixed $cert): array
+    private function parseCertificate(mixed $cert, string $host): array
     {
         $certInfo = openssl_x509_parse($cert);
 
@@ -125,7 +131,22 @@ class SslCheckService
         $validTo = Carbon::createFromTimestamp($certInfo['validTo_time_t']);
         $daysUntilExpiration = max(0, (int) now()->diffInDays($validTo, false));
         $isValid = now()->isBefore($validTo);
-        $issuer = $certInfo['issuer']['CN'] ?? ($certInfo['issuer']['O'] ?? 'Unknown');
+        $issuer = $certInfo['issuer']['CN'] ?? ($certInfo['issuer']['O'] ?? ($certInfo['issuer']['OU'] ?? 'Unknown'));
+
+        if ($daysUntilExpiration <= 30) {
+            \Illuminate\Support\Facades\Log::channel('database')->warning('SSL certificate expiring soon', [
+                'category' => 'ssl',
+                'host' => $host,
+                'days_until_expiration' => $daysUntilExpiration,
+            ]);
+        }
+
+        if (! $isValid) {
+            \Illuminate\Support\Facades\Log::channel('database')->error('SSL certificate expired', [
+                'category' => 'ssl',
+                'host' => $host,
+            ]);
+        }
 
         return [
             'valid' => $isValid,

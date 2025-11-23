@@ -90,6 +90,12 @@ class DomainExpirationService
 
             return $this->parseWhoisResponse($response);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::channel('database')->error('Domain expiration check failed', [
+                'category' => 'domain',
+                'domain' => $domain,
+                'error' => $e->getMessage(),
+            ]);
+
             return $this->errorResult($e->getMessage());
         }
     }
@@ -112,6 +118,14 @@ class DomainExpirationService
             $dateString = str_replace(['/', '.'], '-', $matches[1]);
             $expiresAt = Carbon::parse($dateString);
             $daysUntilExpiration = max(0, (int) now()->diffInDays($expiresAt, false));
+
+            if ($daysUntilExpiration <= 30) {
+                \Illuminate\Support\Facades\Log::channel('database')->warning('Domain expiring soon', [
+                    'category' => 'domain',
+                    'domain' => $domain,
+                    'days_until_expiration' => $daysUntilExpiration,
+                ]);
+            }
 
             return [
                 'expires_at' => $expiresAt,

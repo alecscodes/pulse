@@ -79,6 +79,13 @@ class MonitorController extends Controller
             'check_interval' => $validated['check_interval'] ?? 60,
         ]);
 
+        $this->log('info', 'monitor', 'Monitor created', [
+            'monitor_id' => $monitor->id,
+            'monitor_name' => $monitor->name,
+            'monitor_type' => $monitor->type,
+            'user_id' => auth()->id(),
+        ]);
+
         return redirect()->route('monitors.show', $monitor)->with('success', 'Monitor created successfully.');
     }
 
@@ -87,7 +94,15 @@ class MonitorController extends Controller
      */
     public function show(Monitor $monitor): Response
     {
-        $this->authorize('view', $monitor);
+        try {
+            $this->authorize('view', $monitor);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            $this->log('warning', 'security', 'Unauthorized monitor access attempt', [
+                'monitor_id' => $monitor->id,
+                'user_id' => auth()->id(),
+            ]);
+            throw $e;
+        }
 
         $monitor->load(['checks' => function ($query) {
             $query->latest('checked_at')->limit(100);
@@ -170,7 +185,15 @@ class MonitorController extends Controller
      */
     public function update(MonitorUpdateRequest $request, Monitor $monitor): RedirectResponse
     {
-        $this->authorize('update', $monitor);
+        try {
+            $this->authorize('update', $monitor);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            $this->log('warning', 'security', 'Unauthorized monitor update attempt', [
+                'monitor_id' => $monitor->id,
+                'user_id' => auth()->id(),
+            ]);
+            throw $e;
+        }
 
         $validated = $request->validated();
 
@@ -188,6 +211,12 @@ class MonitorController extends Controller
             'check_interval' => $validated['check_interval'] ?? 60,
         ]);
 
+        $this->log('info', 'monitor', 'Monitor updated', [
+            'monitor_id' => $monitor->id,
+            'monitor_name' => $monitor->name,
+            'changes' => array_keys($validated),
+        ]);
+
         return redirect()->route('monitors.show', $monitor)->with('success', 'Monitor updated successfully.');
     }
 
@@ -196,9 +225,23 @@ class MonitorController extends Controller
      */
     public function destroy(Monitor $monitor): RedirectResponse
     {
-        $this->authorize('delete', $monitor);
+        try {
+            $this->authorize('delete', $monitor);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            $this->log('warning', 'security', 'Unauthorized monitor deletion attempt', [
+                'monitor_id' => $monitor->id,
+                'user_id' => auth()->id(),
+            ]);
+            throw $e;
+        }
 
+        $monitorName = $monitor->name;
         $monitor->delete();
+
+        $this->log('warning', 'monitor', 'Monitor deleted', [
+            'monitor_id' => $monitor->id,
+            'monitor_name' => $monitorName,
+        ]);
 
         return redirect()->route('monitors.index')->with('success', 'Monitor deleted successfully.');
     }

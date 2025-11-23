@@ -31,6 +31,11 @@ class GitUpdateCommand extends Command
         $result = $updateService->performUpdate();
 
         if ($result['success']) {
+            \Illuminate\Support\Facades\Log::channel('database')->info('Git update successful', [
+                'category' => 'system',
+                'message' => $result['message'],
+            ]);
+
             $this->info('✓ '.$result['message']);
 
             if ($result['output']) {
@@ -40,6 +45,12 @@ class GitUpdateCommand extends Command
 
             return Command::SUCCESS;
         }
+
+        \Illuminate\Support\Facades\Log::channel('database')->error('Git update failed', [
+            'category' => 'system',
+            'message' => $result['message'],
+            'error' => $result['error'] ?? null,
+        ]);
 
         $this->error('✗ '.$result['message']);
 

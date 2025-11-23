@@ -108,6 +108,13 @@ class MonitorStatusService
             // Send initial notification
             $this->notificationService->sendMonitorDownNotification($monitor);
 
+            \Illuminate\Support\Facades\Log::channel('database')->error('Monitor downtime started', [
+                'category' => 'monitor',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
+                'started_at' => $downtimeStartTime->toIso8601String(),
+            ]);
+
             // Schedule job to check this monitor every 3 seconds until recovery
             // Only dispatch if not in testing environment (tests should mock this)
             if (! app()->environment('testing')) {
@@ -153,6 +160,13 @@ class MonitorStatusService
             // Send recovery notification
             /** @var MonitorDowntime $currentDowntime */
             $this->notificationService->sendMonitorRecoveryNotification($monitor, $currentDowntime);
+
+            \Illuminate\Support\Facades\Log::channel('database')->info('Monitor recovered', [
+                'category' => 'monitor',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
+                'duration_seconds' => $currentDowntime->duration_seconds,
+            ]);
         }
     }
 

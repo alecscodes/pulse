@@ -57,6 +57,23 @@ class MonitorCheckService
             $result['response_time'] = $this->calculateResponseTime($startTime);
             $result['error_message'] = $e->getMessage();
             $result['status'] = 'down';
+
+            \Illuminate\Support\Facades\Log::channel('database')->error('Monitor check failed', [
+                'category' => 'monitor',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        if ($result['status'] === 'down') {
+            \Illuminate\Support\Facades\Log::channel('database')->warning('Monitor is down', [
+                'category' => 'monitor',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
+                'status_code' => $result['status_code'],
+                'error_message' => $result['error_message'],
+            ]);
         }
 
         return $result;

@@ -15,7 +15,13 @@ import { GITHUB_REPO_URL } from '@/lib/constants';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { Activity, BookOpen, Github, LayoutGrid } from 'lucide-vue-next';
+import {
+    Activity,
+    BookOpen,
+    FileText,
+    Github,
+    LayoutGrid,
+} from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -28,6 +34,11 @@ const mainNavItems: NavItem[] = [
         title: 'Monitors',
         href: '/monitors',
         icon: Activity,
+    },
+    {
+        title: 'Logs',
+        href: '/logs',
+        icon: FileText,
     },
 ];
 

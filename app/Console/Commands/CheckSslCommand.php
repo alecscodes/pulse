@@ -63,6 +63,11 @@ class CheckSslCommand extends Command
             ]
         );
 
+        \Illuminate\Support\Facades\Log::channel('database')->info('SSL check command completed', [
+            'category' => 'system',
+            'stats' => $stats,
+        ]);
+
         return Command::SUCCESS;
     }
 }

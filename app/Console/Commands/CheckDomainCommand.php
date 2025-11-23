@@ -72,6 +72,11 @@ class CheckDomainCommand extends Command
             ]
         );
 
+        \Illuminate\Support\Facades\Log::channel('database')->info('Domain check command completed', [
+            'category' => 'system',
+            'stats' => $stats,
+        ]);
+
         return Command::SUCCESS;
     }
 }
