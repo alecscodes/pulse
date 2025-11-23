@@ -16,6 +16,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $response_body
  * @property string|null $error_message
  * @property bool|null $content_valid
+ * @property bool|null $ssl_valid
+ * @property string|null $ssl_issuer
+ * @property Carbon|null $ssl_valid_from
+ * @property Carbon|null $ssl_valid_to
+ * @property int|null $ssl_days_until_expiration
+ * @property string|null $ssl_error_message
  * @property Carbon $checked_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -37,6 +43,12 @@ class MonitorCheck extends Model
         'response_body',
         'error_message',
         'content_valid',
+        'ssl_valid',
+        'ssl_issuer',
+        'ssl_valid_from',
+        'ssl_valid_to',
+        'ssl_days_until_expiration',
+        'ssl_error_message',
         'checked_at',
     ];
 
@@ -51,6 +63,10 @@ class MonitorCheck extends Model
             'response_time' => 'integer',
             'status_code' => 'integer',
             'content_valid' => 'boolean',
+            'ssl_valid' => 'boolean',
+            'ssl_days_until_expiration' => 'integer',
+            'ssl_valid_from' => 'datetime',
+            'ssl_valid_to' => 'datetime',
             'checked_at' => 'datetime',
         ];
     }

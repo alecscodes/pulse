@@ -106,4 +106,46 @@ class TelegramNotificationService
 
         return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
     }
+
+    /**
+     * Send an SSL certificate expiring notification.
+     *
+     * @param  array{valid: bool, issuer: string|null, valid_from: \Carbon\Carbon|null, valid_to: \Carbon\Carbon|null, days_until_expiration: int|null, error_message: string|null}  $sslResult
+     */
+    public function sendSslExpiringNotification(Monitor $monitor, array $sslResult): bool
+    {
+        $days = $sslResult['days_until_expiration'] ?? 0;
+        $expiryDate = $sslResult['valid_to']?->format('Y-m-d') ?? 'Unknown';
+        $issuer = $sslResult['issuer'] ?? 'Unknown';
+
+        $message = "🔒 SSL Certificate Expiring Soon\n\n"
+            ."<b>Monitor:</b> {$monitor->name}\n"
+            ."<b>URL:</b> {$monitor->url}\n"
+            ."<b>Days until expiration:</b> {$days}\n"
+            ."<b>Expires on:</b> {$expiryDate}\n"
+            ."<b>Issuer:</b> {$issuer}";
+
+        return $this->sendNotification($message);
+    }
+
+    /**
+     * Send an SSL certificate expired notification.
+     *
+     * @param  array{valid: bool, issuer: string|null, valid_from: \Carbon\Carbon|null, valid_to: \Carbon\Carbon|null, days_until_expiration: int|null, error_message: string|null}  $sslResult
+     */
+    public function sendSslExpiredNotification(Monitor $monitor, array $sslResult): bool
+    {
+        $error = $sslResult['error_message'] ?? 'Certificate is invalid or expired';
+        $expiryDate = $sslResult['valid_to']?->format('Y-m-d') ?? 'Unknown';
+        $issuer = $sslResult['issuer'] ?? 'Unknown';
+
+        $message = "🚨 SSL Certificate Expired or Invalid\n\n"
+            ."<b>Monitor:</b> {$monitor->name}\n"
+            ."<b>URL:</b> {$monitor->url}\n"
+            ."<b>Error:</b> {$error}\n"
+            ."<b>Expired on:</b> {$expiryDate}\n"
+            ."<b>Issuer:</b> {$issuer}";
+
+        return $this->sendNotification($message);
+    }
 }

@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('monitors:check')->everyMinute();
 Schedule::command('git:update')->everyMinute();
+Schedule::command('ssl:check')->daily();

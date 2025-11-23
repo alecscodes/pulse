@@ -30,6 +30,7 @@
 - [Features](#-features)
 - [Usage](#-usage)
   - [Content Validation Rules](#content-validation-rules)
+  - [SSL Certificate Monitoring](#-ssl-certificate-monitoring)
 - [Configuration](#️-configuration)
   - [Telegram Notifications](#-telegram-notifications)
   - [Registration Control](#-registration-control)
@@ -66,6 +67,7 @@ The `deploy.sh` script will:
 
 - 🔄 **Multi-site monitoring** with custom check intervals
 - 🌐 **HTTP/HTTPS support** with custom headers & query parameters
+- 🔒 **SSL certificate monitoring** - automatic daily checks with expiration alerts
 - ✅ **Content validation** to ensure your site returns expected content
 - 📱 **Telegram notifications** for instant alerts when sites go down
 - 📊 **Dashboard & analytics** to track uptime and response time
@@ -96,6 +98,20 @@ Configure validation to ensure your site returns expected content:
 - **Content validation**: Must include the phrase (e.g., setting "Welcome to our website" will pass if the page content contains this phrase anywhere, like "Welcome to our website for all visitors" or "You are welcome to our website anytime")
 
 You can set either validation type independently, or both together. When both are set, both conditions must pass.
+
+### 🔒 SSL Certificate Monitoring
+
+Pulse automatically monitors SSL certificates for all HTTPS monitors daily:
+
+- Checks certificate validity and expiration dates
+- Sends Telegram notifications when certificates expire within 30 days or are already expired
+- Stores certificate details (issuer, validity dates) with each monitor check
+
+**Manual check:**
+
+```bash
+php artisan ssl:check
+```
 
 ---
 
@@ -163,6 +179,7 @@ Pulse includes several helpful Artisan commands:
 | `php artisan ip:unban <ip>` | Unban a specific IP address |
 | `php artisan ip:unban --all` | Unban all banned IP addresses |
 | `php artisan monitors:check` | Manually trigger monitor checks |
+| `php artisan ssl:check` | Manually check SSL certificates for all active HTTPS monitors (runs automatically daily) |
 
 ---
 
