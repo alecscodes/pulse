@@ -19,6 +19,10 @@ class CheckDomainCommand extends Command
     ): int {
         $this->info('Checking domain expiration...');
 
+        \Illuminate\Support\Facades\Log::channel('database')->info('Domain check command started', [
+            'category' => 'system',
+        ]);
+
         $monitors = Monitor::where('is_active', true)->get();
 
         if ($monitors->isEmpty()) {
@@ -46,6 +50,12 @@ class CheckDomainCommand extends Command
 
             if ($result['error_message']) {
                 $stats['errors']++;
+                \Illuminate\Support\Facades\Log::channel('database')->warning('Domain check error', [
+                    'category' => 'domain',
+                    'monitor_id' => $monitor->id,
+                    'monitor_name' => $monitor->name,
+                    'error' => $result['error_message'],
+                ]);
             } elseif ($result['days_until_expiration'] !== null) {
                 if ($result['days_until_expiration'] <= 0) {
                     $stats['expired']++;
