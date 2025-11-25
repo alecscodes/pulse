@@ -182,6 +182,15 @@ You can also manually trigger an update:
 php artisan git:update
 ```
 
+### 📋 Log Retention
+
+Pulse automatically cleans up old logs daily. Critical logs are kept for 365 days, while debug logs are kept for 7 days. Retention periods are configurable per log level via settings.
+
+```bash
+php artisan logs:cleanup              # Clean up old logs
+php artisan logs:cleanup --dry-run    # Preview what would be deleted
+```
+
 ---
 
 ## 🔧 Artisan Commands
@@ -196,6 +205,8 @@ Pulse includes several helpful Artisan commands:
 | `php artisan monitors:check` | Manually trigger monitor checks |
 | `php artisan ssl:check` | Manually check SSL certificates for all active HTTPS monitors (runs automatically daily) |
 | `php artisan domain:check` | Manually check domain expiration for all active monitors (runs automatically daily) |
+| `php artisan logs:cleanup` | Clean up old logs based on configurable retention periods (runs automatically daily) |
+| `php artisan logs:cleanup --dry-run` | Preview what logs would be deleted without actually deleting them |
 
 ---
 
