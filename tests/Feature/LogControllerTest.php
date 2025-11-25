@@ -109,8 +109,8 @@ test('index filters logs by date range', function () {
     Log::factory()->create(['created_at' => now()->subDays(2)]);
     Log::factory()->create(['created_at' => now()->subDays(10)]);
 
-    $dateFrom = now()->subDays(3)->format('Y-m-d');
-    $dateTo = now()->format('Y-m-d');
+    $dateFrom = now()->subDays(3)->format('Y-m-d\TH:i');
+    $dateTo = now()->format('Y-m-d\TH:i');
 
     $response = $this->get("/logs?date_from={$dateFrom}&date_to={$dateTo}");
 
