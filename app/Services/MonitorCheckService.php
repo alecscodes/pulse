@@ -48,6 +48,7 @@ class MonitorCheckService
                 $body = $response->body();
                 $result['response_body'] = Str::limit($body, self::MAX_BODY_SIZE);
                 $result['content_valid'] = $monitor->enable_content_validation ? $this->validateContent($monitor, $body) : null;
+                $result['error_message'] ??= $result['content_valid'] === false ? 'Content validation failed' : null;
                 $result['status'] = $result['content_valid'] === false ? 'down' : 'up';
             } else {
                 $result['error_message'] = "HTTP {$response->status()}";
