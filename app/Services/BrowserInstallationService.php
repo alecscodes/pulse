@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-class PuppeteerInstallationService
+class BrowserInstallationService
 {
     /**
-     * Check if Puppeteer and Chromium are available.
+     * Check if Playwright and Chromium are available.
      */
     public function browsersInstalled(): bool
     {
@@ -13,18 +13,15 @@ class PuppeteerInstallationService
             return false;
         }
 
-        if (! $this->commandExists('chromium-browser') && ! $this->commandExists('chromium')) {
-            return false;
-        }
-
         try {
-            $script = 'const puppeteer = require("puppeteer-core"); const chromiumPath = process.env.CHROMIUM_PATH || "/usr/bin/chromium-browser" || "/usr/bin/chromium"; puppeteer.launch({executablePath: chromiumPath, headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]}).then(b => { b.close(); process.exit(0); }).catch(() => process.exit(1));';
+            // Test if Playwright can launch Chromium
+            $script = 'import { chromium } from "playwright"; chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"] }).then(b => { b.close(); process.exit(0); }).catch(() => process.exit(1));';
             $basePath = base_path();
-            $command = sprintf('cd %s && node -e %s 2>&1', escapeshellarg($basePath), escapeshellarg($script));
+            $command = sprintf('cd %s && node --input-type=module -e %s 2>&1', escapeshellarg($basePath), escapeshellarg($script));
             $output = shell_exec($command);
 
             // Check if output contains error about missing browser or module
-            if (str_contains($output ?? '', 'Cannot find module') || str_contains($output ?? '', 'Executable doesn\'t exist') || str_contains($output ?? '', 'Please run the following command')) {
+            if (str_contains($output ?? '', 'Cannot find module') || str_contains($output ?? '', 'Executable doesn\'t exist') || str_contains($output ?? '', 'Please run the following command') || str_contains($output ?? '', 'Error')) {
                 return false;
             }
 
@@ -36,7 +33,7 @@ class PuppeteerInstallationService
     }
 
     /**
-     * Install Puppeteer-core (doesn't download Chromium, uses system one).
+     * Install Playwright (includes Chromium browser).
      */
     public function installBrowsers(): bool
     {
@@ -46,8 +43,8 @@ class PuppeteerInstallationService
 
         try {
             $basePath = base_path();
-            $command = sprintf('cd %s && npm install puppeteer-core --save 2>&1', escapeshellarg($basePath));
-
+            // Install Playwright package
+            $command = sprintf('cd %s && npm install playwright --save 2>&1', escapeshellarg($basePath));
             $output = shell_exec($command);
 
             // Check if installation was successful
@@ -55,7 +52,16 @@ class PuppeteerInstallationService
                 return false;
             }
 
-            // Verify installation by checking if puppeteer-core is now available
+            // Install Chromium browser binary
+            $installBrowserCommand = sprintf('cd %s && npx playwright install chromium 2>&1', escapeshellarg($basePath));
+            $browserOutput = shell_exec($installBrowserCommand);
+
+            // Check if browser installation was successful
+            if (str_contains($browserOutput ?? '', 'ERROR') && ! str_contains($browserOutput ?? '', 'Installing') && ! str_contains($browserOutput ?? '', 'already installed')) {
+                return false;
+            }
+
+            // Verify installation by checking if Playwright is now available
             return $this->browsersInstalled();
         } catch (\Exception $e) {
             return false;
@@ -63,7 +69,7 @@ class PuppeteerInstallationService
     }
 
     /**
-     * Ensure Puppeteer-core is installed.
+     * Ensure Playwright is installed.
      */
     public function ensureInstalled(): bool
     {
@@ -72,31 +78,6 @@ class PuppeteerInstallationService
         }
 
         return $this->installBrowsers();
-    }
-
-    /**
-     * Get Chromium executable path.
-     */
-    public function getChromiumPath(): string
-    {
-        if ($this->commandExists('chromium-browser')) {
-            return trim(shell_exec('which chromium-browser') ?: '');
-        }
-
-        if ($this->commandExists('chromium')) {
-            return trim(shell_exec('which chromium') ?: '');
-        }
-
-        // Default paths for Alpine Linux
-        if (file_exists('/usr/bin/chromium-browser')) {
-            return '/usr/bin/chromium-browser';
-        }
-
-        if (file_exists('/usr/bin/chromium')) {
-            return '/usr/bin/chromium';
-        }
-
-        return '/usr/bin/chromium';
     }
 
     /**

@@ -58,7 +58,7 @@ set_permissions bootstrap/cache
 [ -f bootstrap/cache/.gitignore ] && chown www-data:www-data bootstrap/cache/.gitignore 2>/dev/null || true
 [ -f bootstrap/cache/.gitignore ] && chmod 664 bootstrap/cache/.gitignore 2>/dev/null || true
 
-# Puppeteer
-php artisan puppeteer:install --quiet || true
+# Playwright (Chromium)
+php artisan browser:install --quiet || true
 
 exec php-fpm

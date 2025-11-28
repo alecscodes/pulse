@@ -179,9 +179,9 @@ else
     log "Building assets..."
     npm run build
 
-    # Ensure Puppeteer-core is installed
-    log "Ensuring Puppeteer-core is installed..."
-    php artisan puppeteer:install --quiet || warn "Puppeteer-core installation skipped or failed"
+    # Ensure Playwright (Firefox) is installed
+    log "Ensuring Playwright is installed..."
+    php artisan browser:install --quiet || warn "Playwright installation skipped or failed"
 
     # Clear and optimize
     log "Clearing caches..."

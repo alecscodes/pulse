@@ -141,14 +141,14 @@ class MonitorCheckService
 
     /**
      * Validate content against expected title and content.
-     * Uses Puppeteer for title validation when title is expected (SPAs set title via JS).
+     * Uses Playwright (Firefox) for title validation when title is expected (SPAs set title via JS).
      * Falls back to HTTP body validation for content-only checks.
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
 
         if (! $this->validateWithHttpBody($body, $monitor)) {
-            return $this->validateWithPuppeteer($monitor);
+            return $this->validateWithBrowser($monitor);
         }
 
         return true;
@@ -191,10 +191,10 @@ class MonitorCheckService
     }
 
     /**
-     * Validate content using Puppeteer.
+     * Validate content using Playwright (Firefox) via external script.
      * Retries once on failure to handle transient resource issues.
      */
-    private function validateWithPuppeteer(Monitor $monitor): bool
+    private function validateWithBrowser(Monitor $monitor): bool
     {
         if (! $this->commandExists('node')) {
             return false;
@@ -206,20 +206,23 @@ class MonitorCheckService
             }
 
             try {
-                $puppeteerService = app(\App\Services\PuppeteerInstallationService::class);
-                $chromiumPath = $puppeteerService->getChromiumPath();
-
                 $config = [
                     'url' => $monitor->url,
                     'expectedTitle' => $monitor->expected_title,
                     'expectedContent' => $monitor->expected_content,
-                    'chromiumPath' => $chromiumPath,
                 ];
 
                 $configJson = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                $script = $this->getPuppeteerScript($configJson);
+                $scriptPath = base_path('scripts/validate-spa-content.js');
                 $basePath = base_path();
-                $output = trim(shell_exec("cd {$basePath} && node -e ".escapeshellarg($script).' 2>&1') ?: '');
+                $command = sprintf(
+                    'cd %s && node %s %s 2>&1',
+                    escapeshellarg($basePath),
+                    escapeshellarg($scriptPath),
+                    escapeshellarg($configJson)
+                );
+
+                $output = trim(shell_exec($command) ?: '');
 
                 if (empty($output)) {
                     continue;
@@ -248,52 +251,6 @@ class MonitorCheckService
         }
 
         return false;
-    }
-
-    /**
-     * Get Puppeteer script for content validation.
-     */
-    private function getPuppeteerScript(string $configJson): string
-    {
-        return <<<SCRIPT
-import puppeteer from 'puppeteer-core';
-const config = {$configJson};
-(async () => {
-  let browser = null;
-  try {
-    browser = await puppeteer.launch({
-      executablePath: config.chromiumPath,
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-extensions', '--disable-background-networking', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-breakpad', '--disable-client-side-phishing-detection', '--disable-default-apps', '--disable-features=TranslateUI', '--disable-hang-monitor', '--disable-ipc-flooding-protection', '--disable-popup-blocking', '--disable-prompt-on-repost', '--disable-renderer-backgrounding', '--disable-sync', '--disable-translate', '--metrics-recording-only', '--no-first-run', '--safebrowsing-disable-auto-update', '--enable-automation', '--password-store=basic', '--use-mock-keychain', '--memory-pressure-off']
-    });
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 720 });
-    await page.goto(config.url, {waitUntil: 'networkidle2', timeout: 30000});
-    const title = await page.title();
-    const textContent = await page.evaluate(() => document.body.textContent || '');
-    const result = {
-      title: title || '',
-      textContent: textContent || '',
-    };
-    console.log(JSON.stringify(result));
-  } catch(e) {
-    const errorResult = {
-      title: '',
-      textContent: '',
-      error: e.message || String(e)
-    };
-    console.log(JSON.stringify(errorResult));
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (closeError) {
-        // Ignore close errors
-      }
-    }
-  }
-})();
-SCRIPT;
     }
 
     /**
