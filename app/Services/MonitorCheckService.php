@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class MonitorCheckService
@@ -55,26 +56,11 @@ class MonitorCheckService
                 $result['status'] = 'down';
             }
         } catch (\Exception $e) {
-            $result['response_time'] = $this->calculateResponseTime($startTime);
-            $result['error_message'] = $e->getMessage();
-            $result['status'] = 'down';
-
-            \Illuminate\Support\Facades\Log::channel('database')->error('Monitor check failed', [
-                'category' => 'monitor',
-                'monitor_id' => $monitor->id,
-                'monitor_name' => $monitor->name,
-                'error' => $e->getMessage(),
-            ]);
+            $result = $this->handleException($monitor, $e, $startTime);
         }
 
         if ($result['status'] === 'down') {
-            \Illuminate\Support\Facades\Log::channel('database')->warning('Monitor is down', [
-                'category' => 'monitor',
-                'monitor_id' => $monitor->id,
-                'monitor_name' => $monitor->name,
-                'status_code' => $result['status_code'],
-                'error_message' => $result['error_message'],
-            ]);
+            $this->log('warning', 'Monitor is down', $monitor, ['status_code' => $result['status_code'], 'error_message' => $result['error_message']]);
         }
 
         return $result;
@@ -146,12 +132,7 @@ class MonitorCheckService
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
-
-        if (! $this->validateWithHttpBody($body, $monitor)) {
-            return $this->validateWithBrowser($monitor);
-        }
-
-        return true;
+        return $this->validateWithHttpBody($body, $monitor) || $this->validateWithBrowser($monitor);
     }
 
     /**
@@ -269,5 +250,49 @@ class MonitorCheckService
         }
 
         return false;
+    }
+
+    /**
+     * Handle exception during monitor check.
+     */
+    private function handleException(Monitor $monitor, \Exception $e, float $startTime): array
+    {
+        $result = $this->getDefaultResult();
+        $result['response_time'] = $this->calculateResponseTime($startTime);
+        $result['error_message'] = $e->getMessage();
+
+        if ($this->isTemporarySystemError($e)) {
+            $result['status'] = 'up';
+            $this->log('warning', 'Monitor check skipped due to temporary system error', $monitor, ['error' => $e->getMessage()]);
+
+            return $result;
+        }
+
+        $result['status'] = 'down';
+        $this->log('error', 'Monitor check failed', $monitor, ['error' => $e->getMessage()]);
+
+        return $result;
+    }
+
+    /**
+     * Check if an exception represents a temporary system error that should not mark monitor as down.
+     */
+    private function isTemporarySystemError(\Exception $e): bool
+    {
+        return str_contains($e->getMessage(), 'proc_open') ||
+            str_contains($e->getMessage(), 'posix_spawn') ||
+            str_contains($e->getMessage(), 'Resource temporarily unavailable');
+    }
+
+    /**
+     * Log monitor event.
+     */
+    private function log(string $level, string $message, Monitor $monitor, array $context = []): void
+    {
+        Log::channel('database')->{$level}($message, array_merge([
+            'category' => 'monitor',
+            'monitor_id' => $monitor->id,
+            'monitor_name' => $monitor->name,
+        ], $context));
     }
 }

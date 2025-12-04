@@ -78,6 +78,23 @@ test('checkMonitor returns down status for connection error', function () {
     expect($result['error_message'])->toContain('Connection refused');
 });
 
+test('checkMonitor returns up status for temporary system errors', function () {
+    Http::fake(function () {
+        throw new \Exception('proc_open(): posix_spawn() failed: Resource temporarily unavailable');
+    });
+
+    $monitor = Monitor::factory()->create([
+        'url' => 'https://example.com',
+        'method' => 'GET',
+    ]);
+
+    $service = new MonitorCheckService;
+    $result = $service->checkMonitor($monitor);
+
+    expect($result['status'])->toBe('up');
+    expect($result['error_message'])->toContain('proc_open');
+});
+
 test('checkMonitor validates content when enable_content_validation is true', function () {
     Http::fake([
         'example.com' => Http::response('<html><title>Expected Title</title><body>Expected Content</body></html>', 200),
