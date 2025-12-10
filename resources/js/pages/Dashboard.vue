@@ -15,6 +15,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import {
     Activity,
     AlertCircle,
+    AlertTriangle,
     CheckCircle2,
     Clock,
     Plus,
@@ -29,8 +30,18 @@ interface Monitor {
     response_time?: number;
 }
 
+interface DownWebsite {
+    id: number;
+    name: string;
+    url: string;
+    started_at?: string;
+    status: 'up' | 'down' | 'unknown';
+    response_time?: number;
+}
+
 interface Props {
     monitors: Monitor[];
+    downWebsites: DownWebsite[];
 }
 
 defineProps<Props>();
@@ -154,6 +165,64 @@ const breadcrumbs: BreadcrumbItem[] = [
                         >View All Monitors</Button
                     >
                 </Link>
+            </div>
+
+            <div v-if="downWebsites.length > 0" class="mt-8">
+                <Card>
+                    <CardHeader>
+                        <div class="flex items-center gap-2">
+                            <AlertTriangle class="h-5 w-5 text-destructive" />
+                            <CardTitle>Latest Down Websites</CardTitle>
+                        </div>
+                        <CardDescription>
+                            Websites currently experiencing downtime
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-3">
+                            <div
+                                v-for="website in downWebsites"
+                                :key="website.id"
+                                class="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-4 dark:border-destructive/30 dark:bg-destructive/10"
+                            >
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <Link
+                                            :href="`/monitors/${website.id}`"
+                                            class="font-semibold hover:underline"
+                                        >
+                                            {{ website.name }}
+                                        </Link>
+                                        <Badge variant="destructive">
+                                            <AlertCircle class="mr-1 h-3 w-3" />
+                                            Down
+                                        </Badge>
+                                    </div>
+                                    <a
+                                        :href="website.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="mt-1 block text-sm text-muted-foreground hover:underline"
+                                        @click.stop
+                                    >
+                                        {{ website.url }}
+                                    </a>
+                                    <div
+                                        v-if="website.started_at"
+                                        class="mt-2 text-xs text-muted-foreground"
+                                    >
+                                        Down since:
+                                        {{
+                                            new Date(
+                                                website.started_at,
+                                            ).toLocaleString()
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     </AppLayout>
