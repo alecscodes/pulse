@@ -9,6 +9,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -37,6 +43,7 @@ interface Monitor {
     response_time?: number;
     is_down: boolean;
     last_downtime_at?: string;
+    daily_status?: boolean[];
     domain_expires_at?: string;
     domain_days_until_expiration?: number;
     domain_error_message?: string;
@@ -82,6 +89,16 @@ function getDomainStatus(days?: number | null) {
         return { variant: 'default' as const, color: 'text-orange-500' };
     }
     return { variant: 'secondary' as const, color: 'text-muted-foreground' };
+}
+
+function formatDay(daysAgo: number): string {
+    return new Date(Date.now() - daysAgo * 86400000).toLocaleDateString(
+        'en-US',
+        {
+            month: 'short',
+            day: 'numeric',
+        },
+    );
 }
 
 function deleteMonitor(id: number): void {
@@ -320,6 +337,46 @@ const actionSheetButtons = computed(() => {
                                         monitor.last_checked_at,
                                     ).toLocaleString()
                                 }}</span>
+                            </div>
+                            <div
+                                v-if="monitor.daily_status"
+                                class="mt-3 border-t pt-3"
+                            >
+                                <TooltipProvider>
+                                    <div
+                                        class="flex items-center justify-between gap-0.5 md:gap-1"
+                                    >
+                                        <Tooltip
+                                            v-for="(
+                                                isUp, index
+                                            ) in monitor.daily_status"
+                                            :key="index"
+                                        >
+                                            <TooltipTrigger as-child>
+                                                <div
+                                                    :class="[
+                                                        'h-2 w-2 rounded transition-all duration-200 sm:h-2.5 sm:w-2.5 md:h-4 md:w-4',
+                                                        isUp
+                                                            ? 'bg-emerald-500 hover:scale-110 dark:bg-emerald-600'
+                                                            : 'bg-destructive/80 ring-1 ring-destructive/30 hover:scale-110 dark:bg-destructive/70',
+                                                    ]"
+                                                />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {{
+                                                    formatDay(
+                                                        monitor.daily_status
+                                                            .length -
+                                                            1 -
+                                                            index,
+                                                    )
+                                                }}
+                                                —
+                                                {{ isUp ? 'Up' : 'Down' }}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                </TooltipProvider>
                             </div>
                             <div
                                 v-if="

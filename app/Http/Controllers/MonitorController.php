@@ -20,16 +20,20 @@ class MonitorController extends Controller
             ->with(['checks' => function ($query) {
                 $query->latest('checked_at')->limit(1);
             }, 'downtimes' => function ($query) {
-                $query->whereNotNull('ended_at')
-                    ->latest('started_at')
-                    ->limit(1);
+                $query->where('started_at', '>=', now()->subDays(30)->startOfDay());
             }])
             ->latest()
             ->get()
             ->map(function (Monitor $monitor) {
                 $latestCheck = $monitor->checks->first();
                 $isDown = $monitor->currentDowntime()->exists();
-                $lastDowntime = $monitor->downtimes->first();
+                $lastDowntime = $monitor->downtimes
+                    ->whereNotNull('ended_at')
+                    ->sortByDesc('started_at')
+                    ->first();
+
+                // Calculate daily status for last 30 days
+                $dailyStatus = $this->calculateDailyStatus($monitor, 30);
 
                 return [
                     'id' => $monitor->id,
@@ -44,6 +48,7 @@ class MonitorController extends Controller
                     'response_time' => $latestCheck?->response_time,
                     'is_down' => $isDown,
                     'last_downtime_at' => $lastDowntime?->ended_at?->toISOString(),
+                    'daily_status' => $dailyStatus,
                     'domain_expires_at' => $monitor->domain_expires_at?->toISOString(),
                     'domain_days_until_expiration' => $monitor->domain_days_until_expiration,
                     'domain_error_message' => $monitor->domain_error_message,
@@ -224,6 +229,30 @@ class MonitorController extends Controller
         ]);
 
         return redirect()->route('monitors.show', $monitor)->with('success', 'Monitor updated successfully.');
+    }
+
+    /**
+     * Calculate daily up/down status for the last N days.
+     *
+     * @return array<int, bool> Array of booleans where true = up, false = down
+     */
+    protected function calculateDailyStatus(Monitor $monitor, int $days): array
+    {
+        $now = now();
+        $downtimes = $monitor->downtimes;
+
+        return array_map(function ($i) use ($now, $downtimes) {
+            $dayStart = $now->copy()->subDays($i)->startOfDay();
+            $dayEnd = $now->copy()->subDays($i)->endOfDay();
+
+            foreach ($downtimes as $downtime) {
+                if ($downtime->started_at <= $dayEnd && ($downtime->ended_at ?? $now) >= $dayStart) {
+                    return false; // Down
+                }
+            }
+
+            return true; // Up
+        }, range($days - 1, 0));
     }
 
     /**
