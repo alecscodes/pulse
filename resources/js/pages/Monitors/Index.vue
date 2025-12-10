@@ -36,6 +36,7 @@ interface Monitor {
     last_checked_at?: string;
     response_time?: number;
     is_down: boolean;
+    last_downtime_at?: string;
     domain_expires_at?: string;
     domain_days_until_expiration?: number;
     domain_error_message?: string;
@@ -293,6 +294,19 @@ const actionSheetButtons = computed(() => {
                                 <span class="font-medium"
                                     >{{ monitor.response_time }}ms</span
                                 >
+                            </div>
+                            <div
+                                v-if="monitor.last_downtime_at"
+                                class="flex justify-between"
+                            >
+                                <span class="text-muted-foreground"
+                                    >Last Downtime:</span
+                                >
+                                <span class="font-medium text-destructive">{{
+                                    new Date(
+                                        monitor.last_downtime_at,
+                                    ).toLocaleString()
+                                }}</span>
                             </div>
                             <div
                                 v-if="monitor.last_checked_at"

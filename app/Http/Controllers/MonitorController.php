@@ -19,12 +19,17 @@ class MonitorController extends Controller
         $monitors = Monitor::where('user_id', auth()->id())
             ->with(['checks' => function ($query) {
                 $query->latest('checked_at')->limit(1);
+            }, 'downtimes' => function ($query) {
+                $query->whereNotNull('ended_at')
+                    ->latest('started_at')
+                    ->limit(1);
             }])
             ->latest()
             ->get()
             ->map(function (Monitor $monitor) {
                 $latestCheck = $monitor->checks->first();
                 $isDown = $monitor->currentDowntime()->exists();
+                $lastDowntime = $monitor->downtimes->first();
 
                 return [
                     'id' => $monitor->id,
@@ -38,6 +43,7 @@ class MonitorController extends Controller
                     'last_checked_at' => $latestCheck?->checked_at?->toISOString(),
                     'response_time' => $latestCheck?->response_time,
                     'is_down' => $isDown,
+                    'last_downtime_at' => $lastDowntime?->ended_at?->toISOString(),
                     'domain_expires_at' => $monitor->domain_expires_at?->toISOString(),
                     'domain_days_until_expiration' => $monitor->domain_days_until_expiration,
                     'domain_error_message' => $monitor->domain_error_message,
