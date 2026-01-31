@@ -28,15 +28,7 @@ class CheckMonitorsCommand extends Command
     {
         $this->info('Checking monitors...');
 
-        \Illuminate\Support\Facades\Log::channel('database')->info('Monitor check command started', [
-            'category' => 'system',
-        ]);
-
         $statusService->checkAllMonitors();
-
-        \Illuminate\Support\Facades\Log::channel('database')->info('Monitor check command completed', [
-            'category' => 'system',
-        ]);
 
         $this->info('Monitors checked successfully.');
 
