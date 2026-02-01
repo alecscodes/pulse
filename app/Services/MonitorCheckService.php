@@ -127,8 +127,7 @@ class MonitorCheckService
 
     /**
      * Validate content against expected title and content.
-     * Uses Playwright (Firefox) for title validation when title is expected (SPAs set title via JS).
-     * Falls back to HTTP body validation for content-only checks.
+     * Tries HTTP body first (fast). If that fails, runs browser script (Playwright) for SPAs that set title/content via JS.
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
@@ -172,8 +171,8 @@ class MonitorCheckService
     }
 
     /**
-     * Validate content using Playwright (Firefox) via external script.
-     * Retries once on failure to handle transient resource issues.
+     * Validate content using Playwright (Chromium) via external script.
+     * Used when HTTP body validation fails (e.g. SPAs that set title/content via JS).
      */
     private function validateWithBrowser(Monitor $monitor): bool
     {
@@ -181,57 +180,64 @@ class MonitorCheckService
             return false;
         }
 
-        for ($attempt = 0; $attempt < 2; $attempt++) {
-            if ($attempt > 0) {
-                sleep(1);
-            }
-
-            try {
-                $config = [
-                    'url' => $monitor->url,
-                    'expectedTitle' => $monitor->expected_title,
-                    'expectedContent' => $monitor->expected_content,
-                ];
-
-                $configJson = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                $scriptPath = base_path('scripts/validate-spa-content.js');
-                $basePath = base_path();
-                $command = sprintf(
-                    'cd %s && node %s %s 2>&1',
-                    escapeshellarg($basePath),
-                    escapeshellarg($scriptPath),
-                    escapeshellarg($configJson)
-                );
-
-                $output = trim(shell_exec($command) ?: '');
-
-                if (empty($output)) {
-                    continue;
-                }
-
-                $data = json_decode($output, true);
-                if (! \is_array($data) || isset($data['error'])) {
-                    continue;
-                }
-
-                // Validate title: must match exactly if expected
-                $expectedTitle = trim($monitor->expected_title ?? '');
-                $titleValid = empty($expectedTitle) || trim($data['title'] ?? '') === $expectedTitle;
-
-                // Validate content: must be found if expected
-                $expectedContent = trim($monitor->expected_content ?? '');
-                $textContent = $data['textContent'] ?? '';
-                $normalizedTextContent = preg_replace('/\s+/', ' ', $textContent);
-                $normalizedExpectedContent = preg_replace('/\s+/', ' ', $expectedContent);
-                $contentValid = empty($expectedContent) || (stripos($normalizedTextContent, $normalizedExpectedContent) !== false);
-
-                return $titleValid && $contentValid;
-            } catch (\Exception $e) {
-                // Continue to retry on exception
-            }
+        $data = $this->runBrowserValidationScript($monitor);
+        if ($data === null) {
+            return false;
         }
 
-        return false;
+        return $this->isBrowserContentValid($monitor, $data);
+    }
+
+    /**
+     * Run the SPA validation script and return parsed result or null on failure.
+     *
+     * @return array{title: string, textContent: string}|null
+     */
+    private function runBrowserValidationScript(Monitor $monitor): ?array
+    {
+        $config = [
+            'url' => $monitor->url,
+            'expectedTitle' => $monitor->expected_title,
+            'expectedContent' => $monitor->expected_content,
+        ];
+        $configJson = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $command = \sprintf(
+            'cd %s && node %s %s 2>&1',
+            escapeshellarg(base_path()),
+            escapeshellarg(base_path('scripts/validate-spa-content.js')),
+            escapeshellarg($configJson)
+        );
+
+        $output = trim(shell_exec($command) ?: '');
+        if ($output === '') {
+            return null;
+        }
+
+        $data = json_decode($output, true);
+        if (! \is_array($data) || isset($data['error'])) {
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Check that browser result matches expected title and content.
+     */
+    private function isBrowserContentValid(Monitor $monitor, array $data): bool
+    {
+        $expectedTitle = trim($monitor->expected_title ?? '');
+        $titleValid = $expectedTitle === '' || trim($data['title'] ?? '') === $expectedTitle;
+
+        $expectedContent = trim($monitor->expected_content ?? '');
+        if ($expectedContent === '') {
+            return $titleValid;
+        }
+        
+        $textContent = preg_replace('/\s+/', ' ', $data['textContent'] ?? '');
+        $normalizedExpected = preg_replace('/\s+/', ' ', $expectedContent);
+
+        return $titleValid && stripos($textContent, $normalizedExpected) !== false;
     }
 
     /**
