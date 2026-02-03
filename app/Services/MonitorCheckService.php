@@ -8,6 +8,14 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+/**
+ * Performs HTTP checks and optional content validation for monitors.
+ *
+ * Content validation (when enabled): expected title must match the page <title> exactly
+ * (after normalizing whitespace); expected content must appear as a substring in the body.
+ * If the browser-based check cannot run (e.g. Node unavailable or script failure), the
+ * monitor is not marked down to avoid false positives.
+ */
 class MonitorCheckService
 {
     private const int TIMEOUT = 30;
@@ -126,30 +134,44 @@ class MonitorCheckService
     }
 
     /**
+     * Normalize title for exact match comparison (trim and collapse whitespace).
+     */
+    private function normalizeTitle(string $title): string
+    {
+        return trim(preg_replace('/\s+/', ' ', $title));
+    }
+
+    /**
      * Validate content against expected title and content.
      * Tries HTTP body first (fast). If that fails, runs browser script (Playwright) for SPAs that set title/content via JS.
+     * When browser script cannot run (null), returns true to avoid false "down" notifications.
      */
     private function validateContent(Monitor $monitor, string $body): bool
     {
-        return $this->validateWithHttpBody($body, $monitor) || $this->validateWithBrowser($monitor);
+        if ($this->validateWithHttpBody($body, $monitor)) {
+            return true;
+        }
+
+        $browserResult = $this->validateWithBrowser($monitor);
+
+        return $browserResult;
     }
 
     /**
      * Validate content using HTTP response body.
-     * Returns true only if BOTH title AND content are valid.
-     * If either fails, returns false (monitor marked as down).
+     * Title: exact match only — the page <title> must equal the expected title (after normalization).
+     * Content: body must contain the expected string (substring match).
+     * Returns true only if both title and content checks pass.
      */
     private function validateWithHttpBody(string $body, Monitor $monitor): bool
     {
-        $expectedTitle = trim($monitor->expected_title ?? '');
+        $expectedTitle = $this->normalizeTitle($monitor->expected_title ?? '');
         $expectedContent = trim($monitor->expected_content ?? '');
 
-        // If title is expected, it must match
-        $titleValid = empty($expectedTitle)
-            || $this->extractTitleFromBody($body) === $expectedTitle
-            || stripos($body, $expectedTitle) !== false;
+        $extractedTitle = $this->normalizeTitle($this->extractTitleFromBody($body));
 
-        // If content is expected, it must be found in body
+        $titleValid = empty($expectedTitle) || $extractedTitle === $expectedTitle;
+
         $contentValid = empty($expectedContent)
             || stripos($body, $expectedContent) !== false;
 
@@ -164,7 +186,7 @@ class MonitorCheckService
         if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $body, $matches)) {
             $title = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            return trim(preg_replace('/\s+/', ' ', $title));
+            return $this->normalizeTitle($title);
         }
 
         return '';
@@ -173,16 +195,17 @@ class MonitorCheckService
     /**
      * Validate content using Playwright (Chromium) via external script.
      * Used when HTTP body validation fails (e.g. SPAs that set title/content via JS).
+     * Returns true when script could not run (null) to avoid false "down" notifications.
      */
     private function validateWithBrowser(Monitor $monitor): bool
     {
         if (! $this->commandExists('node')) {
-            return false;
+            return true;
         }
 
         $data = $this->runBrowserValidationScript($monitor);
         if ($data === null) {
-            return false;
+            return true;
         }
 
         return $this->isBrowserContentValid($monitor, $data);
@@ -222,18 +245,19 @@ class MonitorCheckService
     }
 
     /**
-     * Check that browser result matches expected title and content.
+     * Check that browser result matches expected title (exact match) and content (contains).
      */
     private function isBrowserContentValid(Monitor $monitor, array $data): bool
     {
-        $expectedTitle = trim($monitor->expected_title ?? '');
-        $titleValid = $expectedTitle === '' || trim($data['title'] ?? '') === $expectedTitle;
+        $expectedTitle = $this->normalizeTitle($monitor->expected_title ?? '');
+        $actualTitle = $this->normalizeTitle($data['title'] ?? '');
+        $titleValid = $expectedTitle === '' || $actualTitle === $expectedTitle;
 
         $expectedContent = trim($monitor->expected_content ?? '');
         if ($expectedContent === '') {
             return $titleValid;
         }
-        
+
         $textContent = preg_replace('/\s+/', ' ', $data['textContent'] ?? '');
         $normalizedExpected = preg_replace('/\s+/', ' ', $expectedContent);
 

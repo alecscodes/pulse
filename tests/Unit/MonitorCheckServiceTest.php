@@ -134,6 +134,80 @@ test('checkMonitor returns down when content validation fails', function () {
     expect($result['content_valid'])->toBeFalse();
 });
 
+test('checkMonitor title validation requires exact match and does not accept title string elsewhere in body', function () {
+    Http::fake([
+        'example.com' => Http::response(
+            '<html><title>Other Page</title><body><div>Expected Title</div></body></html>',
+            200
+        ),
+    ]);
+
+    $monitor = Monitor::factory()->create([
+        'url' => 'https://example.com',
+        'method' => 'GET',
+        'enable_content_validation' => true,
+        'expected_title' => 'Expected Title',
+    ]);
+
+    $service = new MonitorCheckService;
+    $result = $service->checkMonitor($monitor);
+
+    expect($result['status'])->toBe('down');
+    expect($result['content_valid'])->toBeFalse();
+});
+
+test('checkMonitor content validation passes when expected content is substring of body', function () {
+    Http::fake([
+        'example.com' => Http::response(
+            '<html><title>Balbi Nautica - Home</title><body>Questo negozio di Balbi Nautica si trova qui.</body></html>',
+            200
+        ),
+    ]);
+
+    $monitor = Monitor::factory()->create([
+        'url' => 'https://example.com',
+        'method' => 'GET',
+        'enable_content_validation' => true,
+        'expected_title' => 'Balbi Nautica - Home',
+        'expected_content' => 'Balbi Nautica',
+    ]);
+
+    $service = new MonitorCheckService;
+    $result = $service->checkMonitor($monitor);
+
+    expect($result['status'])->toBe('up');
+    expect($result['content_valid'])->toBeTrue();
+});
+
+test('checkMonitor returns up when content validation enabled but browser script cannot run', function () {
+    Http::fake([
+        'example.com' => Http::response(
+            '<html><head><title></title></head><body><div id="app"></div></body></html>',
+            200
+        ),
+    ]);
+
+    $monitor = Monitor::factory()->create([
+        'url' => 'https://example.com',
+        'method' => 'GET',
+        'enable_content_validation' => true,
+        'expected_title' => 'Expected Title',
+        'expected_content' => 'Expected Content',
+    ]);
+
+    $service = new MonitorCheckService;
+
+    $originalPath = getenv('PATH');
+    putenv('PATH=');
+    try {
+        $result = $service->checkMonitor($monitor);
+        expect($result['status'])->toBe('up');
+        expect($result['content_valid'])->toBeTrue();
+    } finally {
+        putenv('PATH='.$originalPath);
+    }
+});
+
 test('checkMonitor uses POST method when specified', function () {
     Http::fake([
         'example.com' => Http::response('OK', 200),

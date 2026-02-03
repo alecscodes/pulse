@@ -36,8 +36,9 @@ const config = JSON.parse(process.argv[2] || '{}');
       timeout: 30000,
     });
 
+    const rawTitle = (await page.title()) || '';
     const result = {
-      title: await page.title() || '',
+      title: rawTitle.replace(/\s+/g, ' ').trim(),
       textContent: (await page.evaluate(() => document.body.textContent || '')) || '',
     };
 
