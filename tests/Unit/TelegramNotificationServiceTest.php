@@ -43,6 +43,7 @@ test('sendMonitorDownNotification sends correct message', function () {
     Setting::set('telegram_chat_id', 'test-chat-id');
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'name' => 'Test Monitor',
         'url' => 'https://example.com',
     ]);
@@ -58,6 +59,29 @@ test('sendMonitorDownNotification sends correct message', function () {
     });
 });
 
+test('sendMonitorDownNotification uses IP in message when monitor type is ip', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    Setting::set('telegram_bot_token', 'test-token');
+    Setting::set('telegram_chat_id', 'test-chat-id');
+
+    $monitor = Monitor::factory()->create([
+        'type' => 'ip',
+        'name' => 'My VPS',
+        'url' => '192.168.1.1',
+    ]);
+
+    $service = new TelegramNotificationService;
+
+    expect($service->sendMonitorDownNotification($monitor))->toBeTrue();
+
+    Http::assertSent(function ($request) {
+        return $request->data()['text'] === '⚠️ The IP 192.168.1.1 appears to be down.';
+    });
+});
+
 test('sendMonitorRecoveryNotification sends correct message with duration', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true], 200),
@@ -67,6 +91,7 @@ test('sendMonitorRecoveryNotification sends correct message with duration', func
     Setting::set('telegram_chat_id', 'test-chat-id');
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'name' => 'Test Monitor',
         'url' => 'https://example.com',
     ]);
@@ -99,6 +124,7 @@ test('sendMonitorRecoveryNotification formats duration correctly for 86 seconds'
     Setting::set('telegram_chat_id', 'test-chat-id');
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'name' => 'Test Monitor',
         'url' => 'https://example.com',
     ]);
@@ -130,6 +156,7 @@ test('sendMonitorRecoveryNotification formats duration correctly for various dur
     Setting::set('telegram_chat_id', 'test-chat-id');
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'name' => 'Test Monitor',
         'url' => 'https://example.com',
     ]);
@@ -169,6 +196,7 @@ test('sendMonitorStillDownNotification sends correct message', function () {
     Setting::set('telegram_chat_id', 'test-chat-id');
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'name' => 'Test Monitor',
         'url' => 'https://example.com',
     ]);

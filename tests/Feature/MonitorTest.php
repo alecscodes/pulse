@@ -5,12 +5,42 @@ use App\Models\User;
 
 use function Pest\Laravel\actingAs;
 
+function validWebsitePayload(array $overrides = []): array
+{
+    return array_merge([
+        'name' => 'Test Monitor',
+        'type' => 'website',
+        'url' => 'https://example.com',
+        'method' => 'GET',
+        'headers' => [],
+        'parameters' => [],
+        'enable_content_validation' => false,
+        'is_active' => true,
+        'check_interval' => 60,
+    ], $overrides);
+}
+
+function validIpPayload(array $overrides = []): array
+{
+    return array_merge([
+        'name' => 'IP Monitor',
+        'type' => 'ip',
+        'url' => '192.168.1.1',
+        'method' => 'GET',
+        'headers' => [],
+        'parameters' => [],
+        'enable_content_validation' => false,
+        'is_active' => true,
+        'check_interval' => 60,
+    ], $overrides);
+}
+
 test('user can view monitors index', function () {
     $user = User::factory()->create();
-    $monitor = Monitor::factory()->create(['user_id' => $user->id]);
+    Monitor::factory()->create(['user_id' => $user->id]);
 
     actingAs($user)
-        ->get('/monitors')
+        ->get(route('monitors.index'))
         ->assertSuccessful();
 });
 
@@ -18,7 +48,7 @@ test('user can view create monitor page', function () {
     $user = User::factory()->create();
 
     actingAs($user)
-        ->get('/monitors/create')
+        ->get(route('monitors.create'))
         ->assertSuccessful();
 });
 
@@ -26,27 +56,30 @@ test('user can create a monitor', function () {
     $user = User::factory()->create();
 
     actingAs($user)
-        ->post('/monitors', [
-            'name' => 'Test Monitor',
-            'type' => 'website',
-            'url' => 'https://example.com',
-            'method' => 'GET',
-            'headers' => [],
-            'parameters' => [],
-            'enable_content_validation' => false,
-            'is_active' => true,
-            'check_interval' => 60,
-        ])
+        ->post(route('monitors.store'), validWebsitePayload())
         ->assertRedirect();
 
     expect(Monitor::where('name', 'Test Monitor')->where('user_id', $user->id)->exists())->toBeTrue();
+});
+
+test('user can create a monitor with IP address', function () {
+    $user = User::factory()->create();
+
+    actingAs($user)
+        ->post(route('monitors.store'), validIpPayload())
+        ->assertRedirect();
+
+    $monitor = Monitor::where('name', 'IP Monitor')->where('user_id', $user->id)->first();
+    expect($monitor)->not->toBeNull()
+        ->and($monitor->type)->toBe('ip')
+        ->and($monitor->url)->toBe('192.168.1.1');
 });
 
 test('user cannot create monitor with invalid data', function () {
     $user = User::factory()->create();
 
     actingAs($user)
-        ->post('/monitors', [
+        ->post(route('monitors.store'), [
             'name' => '',
             'type' => 'invalid',
             'url' => 'not-a-url',
@@ -59,7 +92,7 @@ test('user can view their own monitor', function () {
     $monitor = Monitor::factory()->create(['user_id' => $user->id]);
 
     actingAs($user)
-        ->get("/monitors/{$monitor->id}")
+        ->get(route('monitors.show', $monitor))
         ->assertSuccessful();
 });
 
@@ -69,7 +102,7 @@ test('user cannot view another user monitor', function () {
     $monitor = Monitor::factory()->create(['user_id' => $otherUser->id]);
 
     actingAs($user)
-        ->get("/monitors/{$monitor->id}")
+        ->get(route('monitors.show', $monitor))
         ->assertForbidden();
 });
 
@@ -78,7 +111,7 @@ test('user can view monitor history', function () {
     $monitor = Monitor::factory()->create(['user_id' => $user->id]);
 
     actingAs($user)
-        ->get("/monitors/{$monitor->id}")
+        ->get(route('monitors.show', $monitor))
         ->assertSuccessful();
 });
 
@@ -87,7 +120,7 @@ test('user can view edit monitor page', function () {
     $monitor = Monitor::factory()->create(['user_id' => $user->id]);
 
     actingAs($user)
-        ->get("/monitors/{$monitor->id}/edit")
+        ->get(route('monitors.edit', $monitor))
         ->assertSuccessful();
 });
 
@@ -97,7 +130,7 @@ test('user cannot edit another user monitor', function () {
     $monitor = Monitor::factory()->create(['user_id' => $otherUser->id]);
 
     actingAs($user)
-        ->get("/monitors/{$monitor->id}/edit")
+        ->get(route('monitors.edit', $monitor))
         ->assertForbidden();
 });
 
@@ -106,20 +139,14 @@ test('user can update their monitor', function () {
     $monitor = Monitor::factory()->create([
         'user_id' => $user->id,
         'name' => 'Original Name',
+        'type' => 'website',
+        'url' => 'https://example.com',
     ]);
 
     actingAs($user)
-        ->put("/monitors/{$monitor->id}", [
+        ->patch(route('monitors.update', $monitor), validWebsitePayload([
             'name' => 'Updated Name',
-            'type' => $monitor->type,
-            'url' => $monitor->url,
-            'method' => $monitor->method,
-            'headers' => [],
-            'parameters' => [],
-            'enable_content_validation' => false,
-            'is_active' => true,
-            'check_interval' => 60,
-        ])
+        ]))
         ->assertRedirect();
 
     expect($monitor->fresh()->name)->toBe('Updated Name');
@@ -128,20 +155,16 @@ test('user can update their monitor', function () {
 test('user cannot update another user monitor', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
-    $monitor = Monitor::factory()->create(['user_id' => $otherUser->id]);
+    $monitor = Monitor::factory()->create([
+        'user_id' => $otherUser->id,
+        'type' => 'website',
+        'url' => 'https://example.com',
+    ]);
 
     actingAs($user)
-        ->put("/monitors/{$monitor->id}", [
+        ->patch(route('monitors.update', $monitor), validWebsitePayload([
             'name' => 'Hacked Name',
-            'type' => $monitor->type,
-            'url' => $monitor->url,
-            'method' => $monitor->method,
-            'headers' => [],
-            'parameters' => [],
-            'enable_content_validation' => false,
-            'is_active' => true,
-            'check_interval' => 60,
-        ])
+        ]))
         ->assertForbidden();
 });
 
@@ -150,7 +173,7 @@ test('user can delete their monitor', function () {
     $monitor = Monitor::factory()->create(['user_id' => $user->id]);
 
     actingAs($user)
-        ->delete("/monitors/{$monitor->id}")
+        ->delete(route('monitors.destroy', $monitor))
         ->assertRedirect();
 
     expect(Monitor::find($monitor->id))->toBeNull();
@@ -162,78 +185,59 @@ test('user cannot delete another user monitor', function () {
     $monitor = Monitor::factory()->create(['user_id' => $otherUser->id]);
 
     actingAs($user)
-        ->delete("/monitors/{$monitor->id}")
+        ->delete(route('monitors.destroy', $monitor))
         ->assertForbidden();
 
     expect(Monitor::find($monitor->id))->not->toBeNull();
 });
 
 test('monitor creation requires authentication', function () {
-    $this->post('/monitors', [
+    $this->post(route('monitors.store'), [
         'name' => 'Test Monitor',
         'type' => 'website',
         'url' => 'https://example.com',
-    ])
-        ->assertRedirect('/login');
+    ])->assertRedirect(route('login'));
 });
 
 test('monitor view requires authentication', function () {
     $monitor = Monitor::factory()->create();
 
-    $this->get("/monitors/{$monitor->id}")
-        ->assertRedirect('/login');
+    $this->get(route('monitors.show', $monitor))
+        ->assertRedirect(route('login'));
 });
 
 test('monitor can be created with content validation', function () {
     $user = User::factory()->create();
 
     actingAs($user)
-        ->post('/monitors', [
-            'name' => 'Test Monitor',
-            'type' => 'website',
-            'url' => 'https://example.com',
-            'method' => 'GET',
-            'headers' => [],
-            'parameters' => [],
+        ->post(route('monitors.store'), validWebsitePayload([
             'enable_content_validation' => true,
             'expected_title' => 'Example Domain',
             'expected_content' => 'Example',
-            'is_active' => true,
-            'check_interval' => 60,
-        ])
+        ]))
         ->assertRedirect();
 
     $monitor = Monitor::where('name', 'Test Monitor')->first();
-    expect($monitor->enable_content_validation)->toBeTrue();
-    expect($monitor->expected_title)->toBe('Example Domain');
-    expect($monitor->expected_content)->toBe('Example');
+    expect($monitor->enable_content_validation)->toBeTrue()
+        ->and($monitor->expected_title)->toBe('Example Domain')
+        ->and($monitor->expected_content)->toBe('Example');
 });
 
 test('monitor can be created with headers and parameters', function () {
     $user = User::factory()->create();
 
     actingAs($user)
-        ->post('/monitors', [
-            'name' => 'Test Monitor',
-            'type' => 'website',
-            'url' => 'https://example.com',
+        ->post(route('monitors.store'), validWebsitePayload([
             'method' => 'POST',
-            'headers' => [
-                ['key' => 'Authorization', 'value' => 'Bearer token'],
-            ],
-            'parameters' => [
-                ['key' => 'param1', 'value' => 'value1'],
-            ],
-            'enable_content_validation' => false,
-            'is_active' => true,
-            'check_interval' => 60,
-        ])
+            'headers' => [['key' => 'Authorization', 'value' => 'Bearer token']],
+            'parameters' => [['key' => 'param1', 'value' => 'value1']],
+        ]))
         ->assertRedirect();
 
     $monitor = Monitor::where('name', 'Test Monitor')->where('user_id', $user->id)->first();
-    expect($monitor)->not->toBeNull();
-    expect($monitor->headers)->toBeArray();
-    expect($monitor->headers)->toHaveKey('Authorization');
-    expect($monitor->parameters)->toBeArray();
-    expect($monitor->parameters)->toHaveKey('param1');
+    expect($monitor)->not->toBeNull()
+        ->and($monitor->headers)->toBeArray()
+        ->and($monitor->headers)->toHaveKey('Authorization')
+        ->and($monitor->parameters)->toBeArray()
+        ->and($monitor->parameters)->toHaveKey('param1');
 });

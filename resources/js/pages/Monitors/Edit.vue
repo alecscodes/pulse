@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { type MonitorFormValues } from '@/composables/useMonitorForm';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import MonitorForm from './MonitorForm.vue';
 
 interface Monitor {
@@ -20,24 +20,16 @@ interface Monitor {
     check_interval: number;
 }
 
-interface Props {
+const props = defineProps<{
     monitor: Monitor;
-}
+}>();
 
-const props = defineProps<Props>();
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    { title: 'Monitors', href: '/monitors' },
+    { title: 'Edit Monitor', href: `/monitors/${props.monitor.id}/edit` },
+]);
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Monitors',
-        href: '/monitors',
-    },
-    {
-        title: 'Edit Monitor',
-        href: `/monitors/${props.monitor.id}/edit`,
-    },
-];
-
-const initialData: Partial<MonitorFormValues> = {
+const initialData = computed(() => ({
     name: props.monitor.name,
     type: props.monitor.type as 'website' | 'ip',
     url: props.monitor.url,
@@ -49,7 +41,7 @@ const initialData: Partial<MonitorFormValues> = {
     expected_content: props.monitor.expected_content,
     is_active: props.monitor.is_active,
     check_interval: props.monitor.check_interval,
-};
+}));
 </script>
 
 <template>
@@ -65,6 +57,7 @@ const initialData: Partial<MonitorFormValues> = {
             </div>
 
             <MonitorForm
+                :key="monitor.id"
                 mode="edit"
                 :initial-data="initialData"
                 :monitor-id="monitor.id"

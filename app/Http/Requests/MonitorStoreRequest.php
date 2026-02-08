@@ -2,99 +2,39 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesMonitorRequest;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class MonitorStoreRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    use ValidatesMonitorRequest;
+
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<int, mixed>|string>
      */
     public function rules(): array
     {
-        return [
-            'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:website,ip'],
-            'url' => ['required', 'string', 'url'],
-            'method' => ['required', 'in:GET,POST'],
-            'headers' => ['nullable', 'array'],
-            'headers.*.key' => ['required_with:headers', 'string'],
-            'headers.*.value' => ['required_with:headers', 'string'],
-            'parameters' => ['nullable', 'array'],
-            'parameters.*.key' => ['required_with:parameters', 'string'],
-            'parameters.*.value' => ['required_with:parameters', 'string'],
-            'enable_content_validation' => ['boolean'],
-            'expected_title' => ['nullable', 'string', 'max:255'],
-            'expected_content' => ['nullable', 'string'],
-            'is_active' => ['boolean'],
-            'check_interval' => ['required', 'integer', 'min:30', 'max:3600'],
-        ];
+        return $this->monitorRules();
     }
 
-    /**
-     * Configure the validator instance.
-     */
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
-        $validator->sometimes('expected_title', 'required_without:expected_content', fn ($input) => ! empty($input->enable_content_validation));
-        $validator->sometimes('expected_content', 'required_without:expected_title', fn ($input) => ! empty($input->enable_content_validation));
+        $this->withMonitorValidator($validator);
     }
 
-    /**
-     * Prepare the data for validation.
-     */
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'enable_content_validation' => $this->boolean('enable_content_validation'),
-            'is_active' => $this->boolean('is_active', true),
-        ]);
+        $this->prepareMonitorForValidation();
     }
 
-    /**
-     * Get validated data with normalized headers and parameters.
-     */
     public function validated($key = null, $default = null): array
     {
-        $validated = parent::validated($key, $default);
-
-        if (isset($validated['headers'])) {
-            $validated['headers'] = $this->normalizeKeyValuePairs($validated['headers']);
-        }
-
-        if (isset($validated['parameters'])) {
-            $validated['parameters'] = $this->normalizeKeyValuePairs($validated['parameters']);
-        }
-
-        return $validated;
-    }
-
-    /**
-     * Normalize key-value pairs from frontend format.
-     */
-    protected function normalizeKeyValuePairs(?array $pairs): array
-    {
-        if (empty($pairs)) {
-            return [];
-        }
-
-        $normalized = [];
-
-        foreach ($pairs as $pair) {
-            if (isset($pair['key']) && isset($pair['value']) && ! empty($pair['key'])) {
-                $normalized[$pair['key']] = $pair['value'];
-            }
-        }
-
-        return $normalized;
+        return $this->normalizeMonitorValidated(parent::validated($key, $default));
     }
 }

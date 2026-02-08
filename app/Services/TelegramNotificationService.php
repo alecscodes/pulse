@@ -39,7 +39,8 @@ class TelegramNotificationService
      */
     public function sendMonitorDownNotification(Monitor $monitor): bool
     {
-        $message = "⚠️ The website {$monitor->url} appears to be down.";
+        $target = $monitor->type === 'ip' ? 'IP' : 'website';
+        $message = "⚠️ The {$target} {$monitor->url} appears to be down.";
 
         return $this->sendNotification($message);
     }
@@ -50,8 +51,8 @@ class TelegramNotificationService
     public function sendMonitorRecoveryNotification(Monitor $monitor, MonitorDowntime $downtime): bool
     {
         $duration = $this->formatDurationAsTime($downtime->duration_seconds ?? 0);
-
-        $message = "✅ The website {$monitor->url} is back up. ⏰ It was down for approximately {$duration}.";
+        $target = $monitor->type === 'ip' ? 'IP' : 'website';
+        $message = "✅ The {$target} {$monitor->url} is back up. ⏰ It was down for approximately {$duration}.";
 
         return $this->sendNotification($message);
     }
@@ -62,8 +63,8 @@ class TelegramNotificationService
     public function sendMonitorStillDownNotification(Monitor $monitor, MonitorDowntime $downtime): bool
     {
         $duration = $this->formatDurationAsTime((int) $downtime->started_at->diffInSeconds(now()));
-
-        $message = "⚠️ The website {$monitor->url} is still down. ⏰ It has been down for approximately {$duration}.";
+        $target = $monitor->type === 'ip' ? 'IP' : 'website';
+        $message = "⚠️ The {$target} {$monitor->url} is still down. ⏰ It has been down for approximately {$duration}.";
 
         return $this->sendNotification($message);
     }

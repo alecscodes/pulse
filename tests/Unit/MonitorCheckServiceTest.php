@@ -31,6 +31,7 @@ test('checkMonitor returns up status for successful request', function () {
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
         'enable_content_validation' => false,
@@ -50,6 +51,7 @@ test('checkMonitor returns down status for failed request', function () {
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
     ]);
@@ -67,6 +69,7 @@ test('checkMonitor returns down status for connection error', function () {
     });
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
     ]);
@@ -84,6 +87,7 @@ test('checkMonitor returns up status for temporary system errors', function () {
     });
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
     ]);
@@ -101,6 +105,7 @@ test('checkMonitor validates content when enable_content_validation is true', fu
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
         'enable_content_validation' => true,
@@ -121,6 +126,7 @@ test('checkMonitor returns down when content validation fails', function () {
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
         'enable_content_validation' => true,
@@ -143,6 +149,7 @@ test('checkMonitor title validation requires exact match and does not accept tit
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
         'enable_content_validation' => true,
@@ -165,6 +172,7 @@ test('checkMonitor content validation passes when expected content is substring 
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
         'enable_content_validation' => true,
@@ -188,6 +196,7 @@ test('checkMonitor returns up when content validation enabled but browser script
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
         'enable_content_validation' => true,
@@ -214,6 +223,7 @@ test('checkMonitor uses POST method when specified', function () {
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'POST',
         'parameters' => ['key' => 'value'],
@@ -235,6 +245,7 @@ test('checkMonitor includes headers when provided', function () {
     ]);
 
     $monitor = Monitor::factory()->create([
+        'type' => 'website',
         'url' => 'https://example.com',
         'method' => 'GET',
         'headers' => ['Authorization' => 'Bearer token123'],
@@ -248,8 +259,38 @@ test('checkMonitor includes headers when provided', function () {
     });
 });
 
+test('checkMonitor type ip uses ping and returns down for invalid IP', function () {
+    $monitor = Monitor::factory()->create([
+        'type' => 'ip',
+        'url' => 'not-an-ip',
+    ]);
+
+    $service = new MonitorCheckService;
+    $result = $service->checkMonitor($monitor);
+
+    expect($result['status'])->toBe('down');
+    expect($result['error_message'])->toBe('Invalid IP address');
+    expect($result['status_code'])->toBeNull();
+});
+
+test('checkMonitor type ip uses ping and returns up when host responds', function () {
+    $monitor = Monitor::factory()->create([
+        'type' => 'ip',
+        'url' => '127.0.0.1',
+    ]);
+
+    $service = new MonitorCheckService;
+    $result = $service->checkMonitor($monitor);
+
+    expect($result)->toHaveKeys(['status', 'response_time', 'error_message']);
+    expect($result['status'])->toBeIn(['up', 'down']);
+    expect($result['response_time'])->toBeInt();
+});
+
 test('createCheck creates a monitor check record', function () {
-    $monitor = Monitor::factory()->create();
+    $monitor = Monitor::factory()->create([
+        'type' => 'website',
+    ]);
     $service = new MonitorCheckService;
 
     $checkResult = [

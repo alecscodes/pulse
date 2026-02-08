@@ -38,14 +38,19 @@ class MonitorCheckService
 
     /**
      * Check a monitor's status.
+     * Website type: HTTP request. IP type: ping (reachability only).
      *
      * @return array{status: string, response_time: int|null, status_code: int|null, response_body: string|null, error_message: string|null, content_valid: bool|null}
      */
     public function checkMonitor(Monitor $monitor): array
     {
         $startTime = microtime(true);
-        $result = $this->getDefaultResult();
 
+        if ($monitor->type === 'ip') {
+            return $this->checkByPing($monitor, $startTime);
+        }
+
+        $result = $this->getDefaultResult();
         try {
             $response = $this->makeRequest($monitor);
             $responseTime = $this->calculateResponseTime($startTime);
@@ -69,6 +74,31 @@ class MonitorCheckService
 
         if ($result['status'] === 'down') {
             $this->log('warning', 'Monitor is down', $monitor, ['status_code' => $result['status_code'], 'error_message' => $result['error_message']]);
+        }
+
+        return $result;
+    }
+
+    /** Check IP reachability by ping (Linux). */
+    private function checkByPing(Monitor $monitor, float $startTime): array
+    {
+        $result = $this->getDefaultResult();
+        $host = trim($monitor->url);
+
+        if ($host === '' || filter_var($host, FILTER_VALIDATE_IP) === false) {
+            $result['error_message'] = 'Invalid IP address';
+
+            return $result;
+        }
+
+        $code = -1;
+        @exec(sprintf('ping -c 1 -W 3 %s 2>/dev/null', escapeshellarg($host)), $_, $code);
+
+        $result['response_time'] = $this->calculateResponseTime($startTime);
+        $result['status'] = $code === 0 ? 'up' : 'down';
+        if ($result['status'] === 'down') {
+            $result['error_message'] = 'Ping failed or host unreachable';
+            $this->log('warning', 'Monitor is down', $monitor, ['error_message' => $result['error_message']]);
         }
 
         return $result;
