@@ -21,8 +21,8 @@ test('domain:check command checks all active monitors', function () {
         'is_active' => false,
     ]);
 
-    $domainService = \Mockery::mock(DomainExpirationService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $domainService = Mockery::mock(DomainExpirationService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $domainService->shouldReceive('getDomainExpiration')
         ->twice()
@@ -58,8 +58,8 @@ test('domain:check command sends notification for expiring domains', function ()
         'is_active' => true,
     ]);
 
-    $domainService = \Mockery::mock(DomainExpirationService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $domainService = Mockery::mock(DomainExpirationService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $domainService->shouldReceive('getDomainExpiration')
         ->once()
@@ -76,9 +76,9 @@ test('domain:check command sends notification for expiring domains', function ()
 
     $notificationService->shouldReceive('sendDomainExpiringNotification')
         ->once()
-        ->with(\Mockery::on(function ($mon) use ($monitor) {
+        ->with(Mockery::on(function ($mon) use ($monitor) {
             return $mon->id === $monitor->id;
-        }), \Mockery::type('array'))
+        }), Mockery::type('array'))
         ->andReturn(true);
 
     app()->instance(DomainExpirationService::class, $domainService);
@@ -95,8 +95,8 @@ test('domain:check command sends notification for expired domains', function () 
         'is_active' => true,
     ]);
 
-    $domainService = \Mockery::mock(DomainExpirationService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $domainService = Mockery::mock(DomainExpirationService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $domainService->shouldReceive('getDomainExpiration')
         ->once()
@@ -108,9 +108,9 @@ test('domain:check command sends notification for expired domains', function () 
 
     $notificationService->shouldReceive('sendDomainExpiredNotification')
         ->once()
-        ->with(\Mockery::on(function ($mon) use ($monitor) {
+        ->with(Mockery::on(function ($mon) use ($monitor) {
             return $mon->id === $monitor->id;
-        }), \Mockery::type('array'))
+        }), Mockery::type('array'))
         ->andReturn(true);
 
     app()->instance(DomainExpirationService::class, $domainService);
@@ -127,8 +127,8 @@ test('domain:check command handles errors gracefully', function () {
         'is_active' => true,
     ]);
 
-    $domainService = \Mockery::mock(DomainExpirationService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $domainService = Mockery::mock(DomainExpirationService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $domainService->shouldReceive('getDomainExpiration')
         ->once()

@@ -6,6 +6,7 @@ use App\Models\Monitor;
 use App\Services\SslCheckService;
 use App\Services\TelegramNotificationService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class CheckSslCommand extends Command
 {
@@ -19,7 +20,7 @@ class CheckSslCommand extends Command
     ): int {
         $this->info('Checking SSL certificates...');
 
-        \Illuminate\Support\Facades\Log::channel('database')->info('SSL check command started', [
+        Log::channel('database')->info('SSL check command started', [
             'category' => 'system',
         ]);
 
@@ -47,7 +48,7 @@ class CheckSslCommand extends Command
             if (! $sslResult['valid']) {
                 if ($sslResult['error_message']) {
                     $stats['errors']++;
-                    \Illuminate\Support\Facades\Log::channel('database')->warning('SSL check error', [
+                    Log::channel('database')->warning('SSL check error', [
                         'category' => 'ssl',
                         'monitor_id' => $monitor->id,
                         'monitor_name' => $monitor->name,
@@ -77,7 +78,7 @@ class CheckSslCommand extends Command
             ]
         );
 
-        \Illuminate\Support\Facades\Log::channel('database')->info('SSL check command completed', [
+        Log::channel('database')->info('SSL check command completed', [
             'category' => 'system',
             'stats' => $stats,
         ]);

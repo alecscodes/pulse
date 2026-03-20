@@ -16,12 +16,12 @@ beforeEach(function () {
 
 test('if internet is down should not check monitors', function () {
     Http::fake(function () {
-        throw new \Exception('No internet');
+        throw new Exception('No internet');
     });
 
     $monitor = Monitor::factory()->create(['is_active' => true]);
-    $checkService = \Mockery::mock(MonitorCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $checkService = Mockery::mock(MonitorCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $checkService->shouldReceive('checkConnectivity')
         ->once()
@@ -38,8 +38,8 @@ test('if internet is down should not check monitors', function () {
 
 test('if monitor is up should go next without anything else', function () {
     $monitor = Monitor::factory()->create(['is_active' => true]);
-    $checkService = \Mockery::mock(MonitorCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $checkService = Mockery::mock(MonitorCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $checkService->shouldReceive('checkConnectivity')
         ->once()
@@ -75,8 +75,8 @@ test('if monitor is up should go next without anything else', function () {
 
 test('if monitor is down should check again after 3 seconds', function () {
     $monitor = Monitor::factory()->create(['is_active' => true]);
-    $checkService = \Mockery::mock(MonitorCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $checkService = Mockery::mock(MonitorCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $checkService->shouldReceive('checkConnectivity')
         ->once()
@@ -125,8 +125,8 @@ test('if monitor is down should check again after 3 seconds', function () {
 
 test('if monitor is down should send notification', function () {
     $monitor = Monitor::factory()->create(['is_active' => true]);
-    $checkService = \Mockery::mock(MonitorCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $checkService = Mockery::mock(MonitorCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $checkService->shouldReceive('checkConnectivity')
         ->once()
@@ -171,8 +171,8 @@ test('if monitor is down and already notified should not send notification again
         'last_notification_at' => now()->subMinutes(1),
     ]);
 
-    $checkService = \Mockery::mock(MonitorCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $checkService = Mockery::mock(MonitorCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $checkService->shouldReceive('checkConnectivity')
         ->once()
@@ -212,8 +212,8 @@ test('if monitor is down and passed 10 minutes should send notification again', 
         'last_notification_at' => now()->subMinutes(11),
     ]);
 
-    $checkService = \Mockery::mock(MonitorCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $checkService = Mockery::mock(MonitorCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $checkService->shouldReceive('checkConnectivity')
         ->once()
@@ -241,9 +241,9 @@ test('if monitor is down and passed 10 minutes should send notification again', 
 
     $notificationService->shouldReceive('sendMonitorStillDownNotification')
         ->once()
-        ->with(\Mockery::on(function ($m) use ($monitor) {
-            return $m instanceof \App\Models\Monitor && $m->id === $monitor->id;
-        }), \Mockery::on(function ($dt) use ($downtime) {
+        ->with(Mockery::on(function ($m) use ($monitor) {
+            return $m instanceof Monitor && $m->id === $monitor->id;
+        }), Mockery::on(function ($dt) use ($downtime) {
             return $dt instanceof MonitorDowntime && $dt->id === $downtime->id;
         }))
         ->andReturn(true);
@@ -270,8 +270,8 @@ test('if monitor comes back up should send notification', function () {
         'last_notification_at' => now()->subMinutes(1),
     ]);
 
-    $checkService = \Mockery::mock(MonitorCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $checkService = Mockery::mock(MonitorCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $checkService->shouldReceive('checkConnectivity')
         ->once()
@@ -298,7 +298,7 @@ test('if monitor comes back up should send notification', function () {
 
     $notificationService->shouldReceive('sendMonitorRecoveryNotification')
         ->once()
-        ->with($monitor, \Mockery::type(MonitorDowntime::class))
+        ->with($monitor, Mockery::type(MonitorDowntime::class))
         ->andReturn(true);
 
     $service = new MonitorStatusService($checkService, $notificationService);

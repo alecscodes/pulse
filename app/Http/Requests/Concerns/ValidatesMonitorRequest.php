@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -10,7 +11,7 @@ trait ValidatesMonitorRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<int, mixed>|string>
+     * @return array<string, ValidationRule|array<int, mixed>|string>
      */
     protected function monitorRules(): array
     {

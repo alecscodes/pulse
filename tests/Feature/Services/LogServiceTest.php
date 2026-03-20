@@ -71,10 +71,10 @@ test('log captures ip address and user agent', function () {
 
 test('log throws exception for invalid level', function () {
     expect(fn () => $this->service->log('invalid', 'test', 'Test message'))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 });
 
 test('log throws exception for invalid method', function () {
     expect(fn () => $this->service->invalidMethod('test', 'Test message'))
-        ->toThrow(\BadMethodCallException::class);
+        ->toThrow(BadMethodCallException::class);
 });

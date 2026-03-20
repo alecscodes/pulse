@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MonitorStoreRequest;
 use App\Http\Requests\MonitorUpdateRequest;
 use App\Models\Monitor;
+use App\Models\MonitorCheck;
+use App\Models\MonitorDowntime;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -107,7 +110,7 @@ class MonitorController extends Controller
     {
         try {
             $this->authorize('view', $monitor);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+        } catch (AuthorizationException $e) {
             $this->log('warning', 'security', 'Unauthorized monitor access attempt', [
                 'monitor_id' => $monitor->id,
                 'user_id' => auth()->id(),
@@ -139,7 +142,7 @@ class MonitorController extends Controller
                 'domain_days_until_expiration' => $monitor->domain_days_until_expiration,
                 'domain_error_message' => $monitor->domain_error_message,
                 'domain_last_checked_at' => $monitor->domain_last_checked_at?->toISOString(),
-                'checks' => $monitor->checks->map(function (\App\Models\MonitorCheck $check) {
+                'checks' => $monitor->checks->map(function (MonitorCheck $check) {
                     return [
                         'id' => $check->id,
                         'status' => $check->status,
@@ -150,7 +153,7 @@ class MonitorController extends Controller
                         'checked_at' => $check->checked_at->toISOString(),
                     ];
                 })->values()->all(),
-                'downtimes' => $monitor->downtimes->map(function (\App\Models\MonitorDowntime $downtime) {
+                'downtimes' => $monitor->downtimes->map(function (MonitorDowntime $downtime) {
                     return [
                         'id' => $downtime->id,
                         'started_at' => $downtime->started_at->toISOString(),
@@ -198,7 +201,7 @@ class MonitorController extends Controller
     {
         try {
             $this->authorize('update', $monitor);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+        } catch (AuthorizationException $e) {
             $this->log('warning', 'security', 'Unauthorized monitor update attempt', [
                 'monitor_id' => $monitor->id,
                 'user_id' => auth()->id(),
@@ -262,7 +265,7 @@ class MonitorController extends Controller
     {
         try {
             $this->authorize('delete', $monitor);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+        } catch (AuthorizationException $e) {
             $this->log('warning', 'security', 'Unauthorized monitor deletion attempt', [
                 'monitor_id' => $monitor->id,
                 'user_id' => auth()->id(),

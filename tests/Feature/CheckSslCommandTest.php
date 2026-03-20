@@ -4,6 +4,7 @@ use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use App\Services\SslCheckService;
 use App\Services\TelegramNotificationService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 
 test('ssl:check command checks all active HTTPS monitors', function () {
@@ -28,12 +29,12 @@ test('ssl:check command checks all active HTTPS monitors', function () {
         'checked_at' => now(),
     ]);
 
-    $sslService = \Mockery::mock(SslCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $sslService = Mockery::mock(SslCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $sslService->shouldReceive('checkSslCertificate')
         ->once()
-        ->with(\Mockery::on(function ($monitor) use ($httpsMonitor) {
+        ->with(Mockery::on(function ($monitor) use ($httpsMonitor) {
             return $monitor->id === $httpsMonitor->id;
         }))
         ->andReturn([
@@ -47,9 +48,9 @@ test('ssl:check command checks all active HTTPS monitors', function () {
 
     $sslService->shouldReceive('updateMonitorCheckWithSsl')
         ->once()
-        ->with(\Mockery::on(function ($monitor) use ($httpsMonitor) {
+        ->with(Mockery::on(function ($monitor) use ($httpsMonitor) {
             return $monitor->id === $httpsMonitor->id;
-        }), \Mockery::type('array'));
+        }), Mockery::type('array'));
 
     $sslService->shouldReceive('isExpiringSoon')
         ->once()
@@ -75,8 +76,8 @@ test('ssl:check command sends notification for expiring certificates', function 
         'checked_at' => now(),
     ]);
 
-    $sslService = \Mockery::mock(SslCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $sslService = Mockery::mock(SslCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $sslService->shouldReceive('checkSslCertificate')
         ->once()
@@ -99,9 +100,9 @@ test('ssl:check command sends notification for expiring certificates', function 
 
     $notificationService->shouldReceive('sendSslExpiringNotification')
         ->once()
-        ->with(\Mockery::on(function ($mon) use ($monitor) {
+        ->with(Mockery::on(function ($mon) use ($monitor) {
             return $mon->id === $monitor->id;
-        }), \Mockery::type('array'))
+        }), Mockery::type('array'))
         ->andReturn(true);
 
     app()->instance(SslCheckService::class, $sslService);
@@ -123,8 +124,8 @@ test('ssl:check command sends notification for expired certificates', function (
         'checked_at' => now(),
     ]);
 
-    $sslService = \Mockery::mock(SslCheckService::class);
-    $notificationService = \Mockery::mock(TelegramNotificationService::class);
+    $sslService = Mockery::mock(SslCheckService::class);
+    $notificationService = Mockery::mock(TelegramNotificationService::class);
 
     $sslService->shouldReceive('checkSslCertificate')
         ->once()
@@ -142,9 +143,9 @@ test('ssl:check command sends notification for expired certificates', function (
 
     $notificationService->shouldReceive('sendSslExpiredNotification')
         ->once()
-        ->with(\Mockery::on(function ($mon) use ($monitor) {
+        ->with(Mockery::on(function ($mon) use ($monitor) {
             return $mon->id === $monitor->id;
-        }), \Mockery::type('array'))
+        }), Mockery::type('array'))
         ->andReturn(true);
 
     app()->instance(SslCheckService::class, $sslService);
@@ -176,7 +177,7 @@ test('ssl:check command works with real valid SSL certificate', function () {
     expect($check->ssl_issuer)->not->toBeNull();
     expect($check->ssl_days_until_expiration)->toBeGreaterThan(0);
     expect($check->ssl_error_message)->toBeNull();
-    expect($check->ssl_valid_to)->toBeInstanceOf(\Carbon\Carbon::class);
+    expect($check->ssl_valid_to)->toBeInstanceOf(Carbon::class);
     expect($check->ssl_valid_to->isFuture())->toBeTrue();
 });
 
@@ -201,6 +202,6 @@ test('ssl:check command works with real expired SSL certificate', function () {
     expect($check->ssl_issuer)->not->toBeNull();
     expect($check->ssl_days_until_expiration)->toBe(0);
     expect($check->ssl_error_message)->toBe('Certificate has expired');
-    expect($check->ssl_valid_to)->toBeInstanceOf(\Carbon\Carbon::class);
+    expect($check->ssl_valid_to)->toBeInstanceOf(Carbon::class);
     expect($check->ssl_valid_to->isPast())->toBeTrue();
 });

@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class IpBanService
 {
@@ -59,7 +60,7 @@ class IpBanService
             Cache::forget("banned_ip_{$ip}");
         }
 
-        \Illuminate\Support\Facades\Log::channel('database')->warning('IP banned', [
+        Log::channel('database')->warning('IP banned', [
             'category' => 'security',
             'ips' => $allIps,
             'reason' => $reason,
@@ -81,7 +82,7 @@ class IpBanService
         Cache::add($key, 0, self::CACHE_TTL);
         $count = Cache::increment($key);
 
-        \Illuminate\Support\Facades\Log::channel('database')->warning('Failed login attempt', [
+        Log::channel('database')->warning('Failed login attempt', [
             'category' => 'security',
             'ip' => $primaryIp,
             'attempt_count' => $count,

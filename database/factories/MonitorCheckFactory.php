@@ -3,10 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\Monitor;
+use App\Models\MonitorCheck;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\MonitorCheck>
+ * @extends Factory<MonitorCheck>
  */
 class MonitorCheckFactory extends Factory
 {

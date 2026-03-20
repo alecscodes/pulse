@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class SslCheckService
 {
@@ -35,7 +36,7 @@ class SslCheckService
             $socket = $this->connectToSsl($host, $port);
 
             if (! $socket) {
-                \Illuminate\Support\Facades\Log::channel('database')->error('SSL connection failed', [
+                Log::channel('database')->error('SSL connection failed', [
                     'category' => 'ssl',
                     'monitor_id' => $monitor->id,
                     'monitor_name' => $monitor->name,
@@ -51,7 +52,7 @@ class SslCheckService
             fclose($socket);
 
             if (! $cert) {
-                \Illuminate\Support\Facades\Log::channel('database')->error('SSL certificate retrieval failed', [
+                Log::channel('database')->error('SSL certificate retrieval failed', [
                     'category' => 'ssl',
                     'monitor_id' => $monitor->id,
                     'monitor_name' => $monitor->name,
@@ -65,7 +66,7 @@ class SslCheckService
 
             return $this->parseCertificate($cert, $host, $monitor);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::channel('database')->error('SSL check failed', [
+            Log::channel('database')->error('SSL check failed', [
                 'category' => 'ssl',
                 'monitor_id' => $monitor->id,
                 'monitor_name' => $monitor->name,
@@ -144,7 +145,7 @@ class SslCheckService
         $certInfo = openssl_x509_parse($cert);
 
         if (! $certInfo) {
-            \Illuminate\Support\Facades\Log::channel('database')->error('SSL certificate parsing failed', [
+            Log::channel('database')->error('SSL certificate parsing failed', [
                 'category' => 'ssl',
                 'monitor_id' => $monitor->id,
                 'monitor_name' => $monitor->name,
@@ -162,7 +163,7 @@ class SslCheckService
         $issuer = $certInfo['issuer']['CN'] ?? ($certInfo['issuer']['O'] ?? ($certInfo['issuer']['OU'] ?? 'Unknown'));
 
         if ($daysUntilExpiration <= 30) {
-            \Illuminate\Support\Facades\Log::channel('database')->warning('SSL certificate expiring soon', [
+            Log::channel('database')->warning('SSL certificate expiring soon', [
                 'category' => 'ssl',
                 'monitor_id' => $monitor->id,
                 'monitor_name' => $monitor->name,
@@ -172,7 +173,7 @@ class SslCheckService
         }
 
         if (! $isValid) {
-            \Illuminate\Support\Facades\Log::channel('database')->error('SSL certificate expired', [
+            Log::channel('database')->error('SSL certificate expired', [
                 'category' => 'ssl',
                 'monitor_id' => $monitor->id,
                 'monitor_name' => $monitor->name,

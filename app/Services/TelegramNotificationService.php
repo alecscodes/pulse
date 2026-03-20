@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Monitor;
 use App\Models\MonitorDowntime;
 use App\Models\Setting;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 
 class TelegramNotificationService
@@ -111,7 +112,7 @@ class TelegramNotificationService
     /**
      * Send an SSL certificate expiring notification.
      *
-     * @param  array{valid: bool, issuer: string|null, valid_from: \Carbon\Carbon|null, valid_to: \Carbon\Carbon|null, days_until_expiration: int|null, error_message: string|null}  $sslResult
+     * @param  array{valid: bool, issuer: string|null, valid_from: Carbon|null, valid_to: Carbon|null, days_until_expiration: int|null, error_message: string|null}  $sslResult
      */
     public function sendSslExpiringNotification(Monitor $monitor, array $sslResult): bool
     {
@@ -132,7 +133,7 @@ class TelegramNotificationService
     /**
      * Send an SSL certificate expired notification.
      *
-     * @param  array{valid: bool, issuer: string|null, valid_from: \Carbon\Carbon|null, valid_to: \Carbon\Carbon|null, days_until_expiration: int|null, error_message: string|null}  $sslResult
+     * @param  array{valid: bool, issuer: string|null, valid_from: Carbon|null, valid_to: Carbon|null, days_until_expiration: int|null, error_message: string|null}  $sslResult
      */
     public function sendSslExpiredNotification(Monitor $monitor, array $sslResult): bool
     {
@@ -153,7 +154,7 @@ class TelegramNotificationService
     /**
      * Send a domain expiring notification.
      *
-     * @param  array{expires_at: \Carbon\Carbon|null, days_until_expiration: int|null, error_message: string|null}  $domainResult
+     * @param  array{expires_at: Carbon|null, days_until_expiration: int|null, error_message: string|null}  $domainResult
      */
     public function sendDomainExpiringNotification(Monitor $monitor, array $domainResult): bool
     {
@@ -172,7 +173,7 @@ class TelegramNotificationService
     /**
      * Send a domain expired notification.
      *
-     * @param  array{expires_at: \Carbon\Carbon|null, days_until_expiration: int|null, error_message: string|null}  $domainResult
+     * @param  array{expires_at: Carbon|null, days_until_expiration: int|null, error_message: string|null}  $domainResult
      */
     public function sendDomainExpiredNotification(Monitor $monitor, array $domainResult): bool
     {

@@ -6,6 +6,9 @@ use App\Jobs\CheckDownMonitorJob;
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use App\Models\MonitorDowntime;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class MonitorStatusService
 {
@@ -89,9 +92,9 @@ class MonitorStatusService
     /**
      * Handle monitor being down.
      *
-     * @param  \Illuminate\Support\Carbon|null  $startedAt  The time when the downtime actually started (before retries)
+     * @param  Carbon|null  $startedAt  The time when the downtime actually started (before retries)
      */
-    protected function handleMonitorDown(Monitor $monitor, ?\Illuminate\Support\Carbon $startedAt = null): void
+    protected function handleMonitorDown(Monitor $monitor, ?Carbon $startedAt = null): void
     {
         /** @var MonitorDowntime|null $currentDowntime */
         $currentDowntime = $monitor->currentDowntime()->first();
@@ -108,7 +111,7 @@ class MonitorStatusService
             // Send initial notification
             $this->notificationService->sendMonitorDownNotification($monitor);
 
-            \Illuminate\Support\Facades\Log::channel('database')->error('Monitor downtime started', [
+            Log::channel('database')->error('Monitor downtime started', [
                 'category' => 'monitor',
                 'monitor_id' => $monitor->id,
                 'monitor_name' => $monitor->name,
@@ -161,7 +164,7 @@ class MonitorStatusService
             /** @var MonitorDowntime $currentDowntime */
             $this->notificationService->sendMonitorRecoveryNotification($monitor, $currentDowntime);
 
-            \Illuminate\Support\Facades\Log::channel('database')->info('Monitor recovered', [
+            Log::channel('database')->info('Monitor recovered', [
                 'category' => 'monitor',
                 'monitor_id' => $monitor->id,
                 'monitor_name' => $monitor->name,
@@ -239,7 +242,7 @@ class MonitorStatusService
             });
 
         $monitors->chunk(10)
-            ->each(function (\Illuminate\Database\Eloquent\Collection $monitors) {
+            ->each(function (Collection $monitors) {
                 /** @var Monitor $monitor */
                 foreach ($monitors as $monitor) {
                     $this->processMonitorCheck($monitor);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LogController;
 use App\Http\Controllers\MonitorController;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Route;
@@ -23,8 +24,8 @@ Route::get('dashboard', [DashboardController::class, 'index'])
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('monitors', MonitorController::class);
-    Route::get('logs', [\App\Http\Controllers\LogController::class, 'index'])->name('logs.index');
-    Route::delete('logs', [\App\Http\Controllers\LogController::class, 'destroy'])->name('logs.destroy');
+    Route::get('logs', [LogController::class, 'index'])->name('logs.index');
+    Route::delete('logs', [LogController::class, 'destroy'])->name('logs.destroy');
 });
 
 require __DIR__.'/settings.php';

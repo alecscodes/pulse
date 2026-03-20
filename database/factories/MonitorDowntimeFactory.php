@@ -3,10 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\Monitor;
+use App\Models\MonitorDowntime;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\MonitorDowntime>
+ * @extends Factory<MonitorDowntime>
  */
 class MonitorDowntimeFactory extends Factory
 {

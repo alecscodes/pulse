@@ -171,7 +171,7 @@ it('cannot access another user monitor in browser', function () {
     $otherUser = User::factory()->create();
     $monitor = Monitor::factory()->create(['user_id' => $otherUser->id]);
 
-    /** @var \App\Models\User $authenticatedUser */
+    /** @var User $authenticatedUser */
     $authenticatedUser = $user;
 
     actingAs($authenticatedUser)

@@ -6,6 +6,7 @@ use App\Services\IpBanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 beforeEach(function () {
     Cache::flush();
@@ -29,7 +30,7 @@ test('middleware blocks banned IPs', function () {
     try {
         $response = $middleware->handle($request, fn ($req) => response('ok'));
         expect($response->getStatusCode())->toBe(403);
-    } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+    } catch (HttpException $e) {
         expect($e->getStatusCode())->toBe(403);
     }
 });

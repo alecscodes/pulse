@@ -17,7 +17,7 @@ test('checkConnectivity returns true when internet is available', function () {
 
 test('checkConnectivity returns false when internet is down', function () {
     Http::fake(function () {
-        throw new \Exception('Connection timeout');
+        throw new Exception('Connection timeout');
     });
 
     $service = new MonitorCheckService;
@@ -65,7 +65,7 @@ test('checkMonitor returns down status for failed request', function () {
 
 test('checkMonitor returns down status for connection error', function () {
     Http::fake(function () {
-        throw new \Exception('Connection refused');
+        throw new Exception('Connection refused');
     });
 
     $monitor = Monitor::factory()->create([
@@ -83,7 +83,7 @@ test('checkMonitor returns down status for connection error', function () {
 
 test('checkMonitor returns up status for temporary system errors', function () {
     Http::fake(function () {
-        throw new \Exception('proc_open(): posix_spawn() failed: Resource temporarily unavailable');
+        throw new Exception('proc_open(): posix_spawn() failed: Resource temporarily unavailable');
     });
 
     $monitor = Monitor::factory()->create([

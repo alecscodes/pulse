@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -21,14 +23,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $expected_content
  * @property bool $is_active
  * @property int $check_interval
- * @property \Illuminate\Support\Carbon|null $domain_expires_at
+ * @property Carbon|null $domain_expires_at
  * @property int|null $domain_days_until_expiration
  * @property string|null $domain_error_message
- * @property \Illuminate\Support\Carbon|null $domain_last_checked_at
- * @property \Illuminate\Support\Carbon $created_at
- * @property \Illuminate\Support\Carbon $updated_at
- * @property \Illuminate\Database\Eloquent\Collection<int, MonitorCheck> $checks
- * @property \Illuminate\Database\Eloquent\Collection<int, MonitorDowntime> $downtimes
+ * @property Carbon|null $domain_last_checked_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property Collection<int, MonitorCheck> $checks
+ * @property Collection<int, MonitorDowntime> $downtimes
  * @property int|null $has_active_downtime
  */
 class Monitor extends Model

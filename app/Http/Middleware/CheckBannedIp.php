@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Services\IpBanService;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckBannedIp
@@ -16,7 +17,7 @@ class CheckBannedIp
     public function handle(Request $request, Closure $next): Response
     {
         if ($this->ipBanService->isBanned($request)) {
-            \Illuminate\Support\Facades\Log::channel('database')->warning('Banned IP access attempt', [
+            Log::channel('database')->warning('Banned IP access attempt', [
                 'category' => 'security',
                 'ip' => $request->ip(),
                 'path' => $request->path(),

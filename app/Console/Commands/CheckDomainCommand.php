@@ -6,6 +6,7 @@ use App\Models\Monitor;
 use App\Services\DomainExpirationService;
 use App\Services\TelegramNotificationService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class CheckDomainCommand extends Command
 {
@@ -19,7 +20,7 @@ class CheckDomainCommand extends Command
     ): int {
         $this->info('Checking domain expiration...');
 
-        \Illuminate\Support\Facades\Log::channel('database')->info('Domain check command started', [
+        Log::channel('database')->info('Domain check command started', [
             'category' => 'system',
         ]);
 
@@ -50,7 +51,7 @@ class CheckDomainCommand extends Command
 
             if ($result['error_message']) {
                 $stats['errors']++;
-                \Illuminate\Support\Facades\Log::channel('database')->warning('Domain check error', [
+                Log::channel('database')->warning('Domain check error', [
                     'category' => 'domain',
                     'monitor_id' => $monitor->id,
                     'monitor_name' => $monitor->name,
@@ -82,7 +83,7 @@ class CheckDomainCommand extends Command
             ]
         );
 
-        \Illuminate\Support\Facades\Log::channel('database')->info('Domain check command completed', [
+        Log::channel('database')->info('Domain check command completed', [
             'category' => 'system',
             'stats' => $stats,
         ]);
