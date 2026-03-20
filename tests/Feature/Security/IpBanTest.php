@@ -25,7 +25,9 @@ test('middleware blocks banned IPs', function () {
 
     Cache::flush();
 
-    $middleware = new CheckBannedIp(app(IpBanService::class));
+    $middleware = new CheckBannedIp(
+        app(IpBanService::class),
+    );
 
     try {
         $response = $middleware->handle($request, fn ($req) => response('ok'));
@@ -41,7 +43,9 @@ test('middleware allows non-banned IPs', function () {
 
     Cache::flush();
 
-    $middleware = new CheckBannedIp(app(IpBanService::class));
+    $middleware = new CheckBannedIp(
+        app(IpBanService::class),
+    );
 
     $response = $middleware->handle($request, fn ($req) => response('ok'));
 
@@ -172,23 +176,23 @@ test('service can unban a specific IP', function () {
     $service = app(IpBanService::class);
 
     DB::table('banned_ips')->insert([
-        'ip' => '192.168.1.200',
+        'ip' => '203.0.113.200',
         'reason' => 'Test',
         'created_at' => now(),
         'updated_at' => now(),
     ]);
 
-    expect($service->unban('192.168.1.200'))->toBeTrue();
-    expect(DB::table('banned_ips')->where('ip', '192.168.1.200')->exists())->toBeFalse();
+    expect($service->unban('203.0.113.200'))->toBeTrue();
+    expect(DB::table('banned_ips')->where('ip', '203.0.113.200')->exists())->toBeFalse();
 });
 
 test('service can unban all IPs', function () {
     $service = app(IpBanService::class);
 
     DB::table('banned_ips')->insert([
-        ['ip' => '192.168.1.1', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
-        ['ip' => '192.168.1.2', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
-        ['ip' => '192.168.1.3', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
+        ['ip' => '203.0.113.1', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
+        ['ip' => '203.0.113.2', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
+        ['ip' => '203.0.113.3', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
     ]);
 
     $count = $service->unbanAll();
@@ -199,23 +203,23 @@ test('service can unban all IPs', function () {
 
 test('artisan command unban specific IP', function () {
     DB::table('banned_ips')->insert([
-        'ip' => '192.168.1.100',
+        'ip' => '203.0.113.100',
         'reason' => 'Test',
         'created_at' => now(),
         'updated_at' => now(),
     ]);
 
-    $this->artisan('ip:unban', ['ip' => '192.168.1.100'])
-        ->expectsOutput('IP address 192.168.1.100 has been unbanned.')
+    $this->artisan('ip:unban', ['ip' => '203.0.113.100'])
+        ->expectsOutput('IP address 203.0.113.100 has been unbanned.')
         ->assertSuccessful();
 
-    expect(DB::table('banned_ips')->where('ip', '192.168.1.100')->exists())->toBeFalse();
+    expect(DB::table('banned_ips')->where('ip', '203.0.113.100')->exists())->toBeFalse();
 });
 
 test('artisan command unban all IPs', function () {
     DB::table('banned_ips')->insert([
-        ['ip' => '192.168.1.1', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
-        ['ip' => '192.168.1.2', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
+        ['ip' => '203.0.113.1', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
+        ['ip' => '203.0.113.2', 'reason' => 'Test', 'created_at' => now(), 'updated_at' => now()],
     ]);
 
     $this->artisan('ip:unban', ['--all' => true])
@@ -232,8 +236,8 @@ test('artisan command validates IP address', function () {
 });
 
 test('artisan command warns when IP not found', function () {
-    $this->artisan('ip:unban', ['ip' => '10.0.0.1'])
-        ->expectsOutput('IP address 10.0.0.1 was not found in the banned list.')
+    $this->artisan('ip:unban', ['ip' => '203.0.113.1'])
+        ->expectsOutput('IP address 203.0.113.1 was not found in the banned list.')
         ->assertSuccessful();
 });
 
@@ -263,12 +267,14 @@ test('storage paths trigger IP bans when file does not exist and return 403', fu
     Cache::flush();
 
     $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.62']);
+    $this->withHeader('User-Agent', 'Test Browser');
     $response = $this->get('/storage/config.php');
     $response->assertForbidden();
     expect(DB::table('banned_ips')->where('ip', '203.0.113.62')->exists())->toBeTrue();
 
     Cache::flush();
     $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.63']);
+    $this->withHeader('User-Agent', 'Test Browser');
     $response = $this->get('/storage/secret.txt');
     $response->assertForbidden();
     expect(DB::table('banned_ips')->where('ip', '203.0.113.63')->exists())->toBeTrue();
