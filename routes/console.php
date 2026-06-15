@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('monitors:check')->everyMinute();
-Schedule::command('git:update')->everyMinute();
+Schedule::command('app:deploy --if-outdated')->everyFiveMinutes();
 Schedule::command('ssl:check')->daily();
 Schedule::command('domain:check')->daily();
 Schedule::command('logs:cleanup')->daily();
