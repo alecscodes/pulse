@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\MonitoringUpdateRequest;
 use App\Models\Setting;
 use App\Services\TelegramNotificationService;
+use App\Support\FlashToast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,7 +33,9 @@ class MonitoringController extends Controller
         Setting::set('telegram_bot_token', $request->telegram_bot_token);
         Setting::set('telegram_chat_id', $request->telegram_chat_id);
 
-        return redirect()->route('monitoring.edit')->with('success', 'Monitoring settings updated successfully.');
+        FlashToast::success('Monitoring settings updated successfully.');
+
+        return redirect()->route('monitoring.edit');
     }
 
     /**
@@ -61,9 +64,13 @@ class MonitoringController extends Controller
             Setting::set('telegram_bot_token', $originalToken);
             Setting::set('telegram_chat_id', $originalChatId);
 
-            return back()->with('error', 'Failed to send test message. Please check your bot token and chat ID.');
+            FlashToast::error('Failed to send test message. Please check your bot token and chat ID.');
+
+            return back();
         }
 
-        return back()->with('success', 'Test message sent successfully!');
+        FlashToast::success('Test message sent successfully!');
+
+        return back();
     }
 }

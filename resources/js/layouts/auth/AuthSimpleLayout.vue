@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
-import FlashToasts from '@/components/common/FlashToasts.vue';
+import { Toaster } from '@/components/ui/sonner';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 
@@ -40,6 +40,11 @@ defineProps<{
                 <slot />
             </div>
         </div>
-        <FlashToasts />
+        <Toaster
+            position="top-right"
+            rich-colors
+            close-button
+            data-testid="app-toaster"
+        />
     </div>
 </template>

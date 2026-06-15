@@ -9,9 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import AppLayout from '@/layouts/AppLayout.vue';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { destroy, index } from '@/routes/banned-ips';
 import { Head, router } from '@inertiajs/vue3';
 import { ShieldOff, Trash2 } from 'lucide-vue-next';
 
@@ -27,16 +25,20 @@ interface Props {
 
 defineProps<Props>();
 
-const breadcrumbItems: BreadcrumbItem[] = [
-    {
-        title: 'Banned IPs',
-        href: '/settings/banned-ips',
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            {
+                title: 'Banned IPs',
+                href: index(),
+            },
+        ],
     },
-];
+});
 
 function unbanIp(ip: string): void {
     if (confirm(`Are you sure you want to unban IP address ${ip}?`)) {
-        router.delete('/settings/banned-ips/unban', {
+        router.delete(destroy.url(), {
             data: { ip },
             preserveScroll: true,
             onSuccess: () => {
@@ -52,82 +54,76 @@ function formatDate(dateString: string): string {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Banned IPs" />
+    <Head title="Banned IPs" />
 
-        <SettingsLayout>
-            <div class="space-y-6">
-                <HeadingSmall
-                    :title="`Banned IP Addresses (${bannedIps.length})`"
-                    description="View and manage IP addresses that have been automatically banned"
-                />
+    <div class="space-y-6">
+        <HeadingSmall
+            :title="`Banned IP Addresses (${bannedIps.length})`"
+            description="View and manage IP addresses that have been automatically banned"
+        />
 
-                <Card v-if="bannedIps.length === 0">
-                    <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                            <ShieldOff class="h-5 w-5" />
-                            No Banned IPs
-                        </CardTitle>
-                        <CardDescription>
-                            There are currently no banned IP addresses.
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
+        <Card v-if="bannedIps.length === 0">
+            <CardHeader>
+                <CardTitle class="flex items-center gap-2">
+                    <ShieldOff class="h-5 w-5" />
+                    No Banned IPs
+                </CardTitle>
+                <CardDescription>
+                    There are currently no banned IP addresses.
+                </CardDescription>
+            </CardHeader>
+        </Card>
 
-                <div v-else class="space-y-4">
-                    <div class="grid gap-4">
-                        <Card v-for="bannedIp in bannedIps" :key="bannedIp.ip">
-                            <CardContent class="p-4 sm:p-6">
-                                <div
-                                    class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+        <div v-else class="space-y-4">
+            <div class="grid gap-4">
+                <Card v-for="bannedIp in bannedIps" :key="bannedIp.ip">
+                    <CardContent class="p-4 sm:p-6">
+                        <div
+                            class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+                        >
+                            <div
+                                class="min-w-0 flex-1 space-y-2 overflow-hidden"
+                            >
+                                <span
+                                    class="block font-mono text-sm font-semibold break-all sm:text-base"
                                 >
-                                    <div
-                                        class="min-w-0 flex-1 space-y-2 overflow-hidden"
+                                    {{ bannedIp.ip }}
+                                </span>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <Badge
+                                        v-if="bannedIp.reason"
+                                        variant="secondary"
+                                        class="max-w-full text-xs whitespace-normal"
                                     >
-                                        <span
-                                            class="block font-mono text-sm font-semibold break-all sm:text-base"
-                                        >
-                                            {{ bannedIp.ip }}
-                                        </span>
-                                        <div
-                                            class="flex flex-wrap items-center gap-2"
-                                        >
-                                            <Badge
-                                                v-if="bannedIp.reason"
-                                                variant="secondary"
-                                                class="max-w-full text-xs whitespace-normal"
-                                            >
-                                                {{ bannedIp.reason }}
-                                            </Badge>
-                                            <span
-                                                v-else
-                                                class="text-sm text-muted-foreground"
-                                            >
-                                                No reason provided
-                                            </span>
-                                        </div>
-                                        <p
-                                            class="text-sm wrap-break-word text-muted-foreground"
-                                        >
-                                            Banned at:
-                                            {{ formatDate(bannedIp.banned_at) }}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        class="w-full shrink-0 sm:w-auto"
-                                        @click="unbanIp(bannedIp.ip)"
+                                        {{ bannedIp.reason }}
+                                    </Badge>
+                                    <span
+                                        v-else
+                                        class="text-sm text-muted-foreground"
                                     >
-                                        <Trash2 class="mr-2 h-4 w-4" />
-                                        Unban
-                                    </Button>
+                                        No reason provided
+                                    </span>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
+                                <p
+                                    class="text-sm wrap-break-word text-muted-foreground"
+                                >
+                                    Banned at:
+                                    {{ formatDate(bannedIp.banned_at) }}
+                                </p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                class="w-full shrink-0 sm:w-auto"
+                                @click="unbanIp(bannedIp.ip)"
+                            >
+                                <Trash2 class="mr-2 h-4 w-4" />
+                                Unban
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
-        </SettingsLayout>
-    </AppLayout>
+        </div>
+    </div>
 </template>

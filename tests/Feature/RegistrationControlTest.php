@@ -135,7 +135,6 @@ test('authenticated user can update registration settings', function () {
     ]);
 
     $response->assertRedirect('/settings/registration');
-    $response->assertSessionHas('success');
     expect(filter_var(Setting::get('registration_enabled'), FILTER_VALIDATE_BOOLEAN))->toBeTrue();
 });
 

@@ -13,12 +13,12 @@ interface Props {
   class?: HTMLAttributes['class']
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 </script>
 
 <template>
   <Field v-slot="{ value, handleChange, handleBlur, errorMessage, meta }" :name="name" :type="type">
-    <div :class="class">
+    <div :class="props.class">
       <div class="grid gap-2">
         <Label
           :for="name"

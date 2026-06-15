@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { edit, index as monitorsIndex } from '@/routes/monitors';
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import MonitorForm from './MonitorForm.vue';
@@ -24,10 +23,17 @@ const props = defineProps<{
     monitor: Monitor;
 }>();
 
-const breadcrumbs = computed<BreadcrumbItem[]>(() => [
-    { title: 'Monitors', href: '/monitors' },
-    { title: 'Edit Monitor', href: `/monitors/${props.monitor.id}/edit` },
-]);
+defineOptions({
+    layout: (layoutProps: { monitor: Monitor }) => ({
+        breadcrumbs: [
+            { title: 'Monitors', href: monitorsIndex() },
+            {
+                title: 'Edit Monitor',
+                href: edit(layoutProps.monitor.id),
+            },
+        ],
+    }),
+});
 
 const initialData = computed(() => ({
     name: props.monitor.name,
@@ -47,21 +53,19 @@ const initialData = computed(() => ({
 <template>
     <Head title="Edit Monitor" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-        >
-            <div>
-                <h1 class="text-2xl font-bold">Edit Monitor</h1>
-                <p class="text-muted-foreground">Update monitor settings</p>
-            </div>
-
-            <MonitorForm
-                :key="monitor.id"
-                mode="edit"
-                :initial-data="initialData"
-                :monitor-id="monitor.id"
-            />
+    <div
+        class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+    >
+        <div>
+            <h1 class="text-2xl font-bold">Edit Monitor</h1>
+            <p class="text-muted-foreground">Update monitor settings</p>
         </div>
-    </AppLayout>
+
+        <MonitorForm
+            :key="monitor.id"
+            mode="edit"
+            :initial-data="initialData"
+            :monitor-id="monitor.id"
+        />
+    </div>
 </template>

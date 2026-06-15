@@ -7,6 +7,7 @@ use App\Http\Requests\MonitorUpdateRequest;
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use App\Models\MonitorDowntime;
+use App\Support\FlashToast;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -100,7 +101,9 @@ class MonitorController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-        return redirect()->route('monitors.show', $monitor)->with('success', 'Monitor created successfully.');
+        FlashToast::success('Monitor created successfully.');
+
+        return redirect()->route('monitors.show', $monitor);
     }
 
     /**
@@ -231,7 +234,9 @@ class MonitorController extends Controller
             'changes' => array_keys($validated),
         ]);
 
-        return redirect()->route('monitors.show', $monitor)->with('success', 'Monitor updated successfully.');
+        FlashToast::success('Monitor updated successfully.');
+
+        return redirect()->route('monitors.show', $monitor);
     }
 
     /**
@@ -281,6 +286,8 @@ class MonitorController extends Controller
             'monitor_name' => $monitorName,
         ]);
 
-        return redirect()->route('monitors.index')->with('success', 'Monitor deleted successfully.');
+        FlashToast::success('Monitor deleted successfully.');
+
+        return redirect()->route('monitors.index');
     }
 }

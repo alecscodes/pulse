@@ -32,6 +32,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl, urlIsActive } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import { index as logsIndex } from '@/routes/logs';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { InertiaLinkProps, Link, usePage } from '@inertiajs/vue3';
 import { FileText, LayoutGrid, Menu, Search } from 'lucide-vue-next';
@@ -68,7 +69,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Logs',
-        href: '/logs',
+        href: logsIndex(),
         icon: FileText,
     },
 ];

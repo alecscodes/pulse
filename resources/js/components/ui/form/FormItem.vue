@@ -5,11 +5,11 @@ interface Props {
   class?: HTMLAttributes['class']
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 </script>
 
 <template>
-  <div :class="class">
+  <div :class="props.class">
     <slot />
   </div>
 </template>

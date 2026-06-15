@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/sidebar';
 import { GITHUB_REPO_URL } from '@/lib/constants';
 import { dashboard } from '@/routes';
+import { index as logsIndex } from '@/routes/logs';
+import { index as monitorsIndex } from '@/routes/monitors';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import {
@@ -32,12 +34,12 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Monitors',
-        href: '/monitors',
+        href: monitorsIndex(),
         icon: Activity,
     },
     {
         title: 'Logs',
-        href: '/logs',
+        href: logsIndex(),
         icon: FileText,
     },
 ];

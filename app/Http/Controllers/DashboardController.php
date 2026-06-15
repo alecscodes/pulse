@@ -79,7 +79,7 @@ class DashboardController extends Controller
             'id' => $monitor->id,
             'name' => $monitor->name,
             'url' => $monitor->url,
-            'status' => $check?->status ?? 'unknown',
+            'status' => $check->status ?? 'unknown',
             'is_down' => (bool) $monitor->has_active_downtime,
             'response_time' => $check?->response_time,
         ];
@@ -92,7 +92,7 @@ class DashboardController extends Controller
             'name' => $monitor->name,
             'url' => $monitor->url,
             'started_at' => $monitor->downtimes->first()?->started_at?->toISOString(),
-            'status' => $monitor->checks->first()?->status ?? 'unknown',
+            'status' => $monitor->checks->first()->status ?? 'unknown',
             'response_time' => $monitor->checks->first()?->response_time,
         ];
     }

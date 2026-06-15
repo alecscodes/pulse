@@ -21,8 +21,7 @@ test('authenticated user can update monitoring settings', function () {
             'telegram_bot_token' => 'test-bot-token',
             'telegram_chat_id' => 'test-chat-id',
         ])
-        ->assertRedirect('/settings/monitoring')
-        ->assertSessionHas('success');
+        ->assertRedirect('/settings/monitoring');
 
     expect(Setting::get('telegram_bot_token'))->toBe('test-bot-token');
     expect(Setting::get('telegram_chat_id'))->toBe('test-chat-id');

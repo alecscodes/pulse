@@ -11,6 +11,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { store, update } from '@/routes/monitors';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Plus, X } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
@@ -78,7 +79,7 @@ const processing = ref(false);
 
 const isWebsite = computed(() => form.type === 'website');
 const submitUrl = computed(() =>
-    props.mode === 'create' ? '/monitors' : `/monitors/${props.monitorId}`,
+    props.mode === 'create' ? store.url() : update.url(props.monitorId!),
 );
 const submitMethod = computed(() =>
     props.mode === 'create' ? 'post' : 'patch',
