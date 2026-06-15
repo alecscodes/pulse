@@ -6,7 +6,6 @@ use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * Performs HTTP checks and optional content validation for monitors.
@@ -21,8 +20,6 @@ class MonitorCheckService
     private const int TIMEOUT = 30;
 
     private const int CONNECTIVITY_TIMEOUT = 5;
-
-    private const int MAX_BODY_SIZE = 5000;
 
     /**
      * Check if internet connectivity is available.
@@ -40,7 +37,7 @@ class MonitorCheckService
      * Check a monitor's status.
      * Website type: HTTP request. IP type: ping (reachability only).
      *
-     * @return array{status: string, response_time: int|null, status_code: int|null, response_body: string|null, error_message: string|null, content_valid: bool|null}
+     * @return array{status: string, response_time: int|null, status_code: int|null, error_message: string|null, content_valid: bool|null}
      */
     public function checkMonitor(Monitor $monitor): array
     {
@@ -60,7 +57,6 @@ class MonitorCheckService
 
             if ($response->successful()) {
                 $body = $response->body();
-                $result['response_body'] = Str::limit($body, self::MAX_BODY_SIZE);
                 $result['content_valid'] = $monitor->enable_content_validation ? $this->validateContent($monitor, $body) : null;
                 $result['error_message'] ??= $result['content_valid'] === false ? 'Content validation failed' : null;
                 $result['status'] = $result['content_valid'] === false ? 'down' : 'up';
@@ -114,7 +110,6 @@ class MonitorCheckService
             'status' => $checkResult['status'],
             'response_time' => $checkResult['response_time'],
             'status_code' => $checkResult['status_code'],
-            'response_body' => $checkResult['response_body'],
             'error_message' => $checkResult['error_message'],
             'content_valid' => $checkResult['content_valid'],
             'checked_at' => now(),
@@ -130,7 +125,6 @@ class MonitorCheckService
             'status' => 'down',
             'response_time' => null,
             'status_code' => null,
-            'response_body' => null,
             'error_message' => null,
             'content_valid' => null,
         ];

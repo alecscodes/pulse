@@ -191,6 +191,14 @@ php artisan logs:cleanup              # Clean up old logs
 php artisan logs:cleanup --dry-run    # Preview what would be deleted
 ```
 
+### 📊 Monitor History Retention
+
+History older than 30 days is deleted daily. SQLite disk space is reclaimed weekly.
+
+```bash
+php artisan monitor-history:cleanup --vacuum
+```
+
 ---
 
 ## 🔧 Artisan Commands
@@ -208,6 +216,8 @@ Pulse includes several helpful Artisan commands:
 | `php artisan domain:check` | Manually check domain expiration for all active monitors (runs automatically daily) |
 | `php artisan logs:cleanup` | Clean up old logs based on configurable retention periods (runs automatically daily) |
 | `php artisan logs:cleanup --dry-run` | Preview what logs would be deleted without actually deleting them |
+| `php artisan monitor-history:cleanup` | Delete old monitor history (daily, 30 days retention) |
+| `php artisan monitor-history:cleanup --vacuum` | Delete and reclaim SQLite disk space (weekly) |
 
 ---
 

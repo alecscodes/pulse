@@ -13,3 +13,5 @@ Schedule::command('app:deploy --if-outdated')->everyFiveMinutes();
 Schedule::command('ssl:check')->daily();
 Schedule::command('domain:check')->daily();
 Schedule::command('logs:cleanup')->daily();
+Schedule::command('monitor-history:cleanup')->daily();
+Schedule::command('monitor-history:cleanup --vacuum')->weeklyOn(0, '03:00');

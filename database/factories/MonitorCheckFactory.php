@@ -23,7 +23,7 @@ class MonitorCheckFactory extends Factory
             'status' => fake()->randomElement(['up', 'down']),
             'response_time' => fake()->numberBetween(50, 500),
             'status_code' => fake()->randomElement([200, 404, 500]),
-            'response_body' => fake()->optional()->text(500),
+            'response_body' => null,
             'error_message' => null,
             'content_valid' => null,
             'checked_at' => now(),
