@@ -4,6 +4,7 @@ x-app: &app
   image: ${COMPOSE_PROJECT_NAME:-pulse}-app
   restart: unless-stopped
   env_file: .env
+  init: true
   volumes:
     - .:/var/www
     - vendor:/var/www/vendor

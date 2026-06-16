@@ -6,6 +6,7 @@ use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 
 /**
  * Performs HTTP checks and optional content validation for monitors.
@@ -248,14 +249,15 @@ class MonitorCheckService
             'expectedContent' => $monitor->expected_content,
         ];
         $configJson = json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $command = \sprintf(
-            'cd %s && node %s %s 2>&1',
-            escapeshellarg(base_path()),
-            escapeshellarg(base_path('scripts/validate-spa-content.js')),
-            escapeshellarg($configJson)
-        );
+        $result = Process::timeout(self::TIMEOUT + 15)
+            ->path(base_path())
+            ->run([
+                'node',
+                base_path('scripts/validate-spa-content.js'),
+                $configJson,
+            ]);
 
-        $output = trim(shell_exec($command) ?: '');
+        $output = trim($result->output());
         if ($output === '') {
             return null;
         }
