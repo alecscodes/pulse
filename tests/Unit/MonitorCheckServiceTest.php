@@ -3,7 +3,32 @@
 use App\Models\Monitor;
 use App\Models\MonitorCheck;
 use App\Services\MonitorCheckService;
+use Illuminate\Process\PendingProcess;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Process;
+
+/**
+ * Stub SPA browser validation so content-validation tests stay deterministic.
+ */
+function fakeBrowserContentValidation(string $title, string $textContent = ''): void
+{
+    Process::fake(function (PendingProcess $process) use ($title, $textContent) {
+        $command = $process->command;
+
+        if (
+            is_array($command)
+            && ($command[0] ?? null) === 'node'
+            && str_contains((string) ($command[1] ?? ''), 'validate-spa-content.js')
+        ) {
+            return Process::result(output: json_encode([
+                'title' => $title,
+                'textContent' => $textContent,
+            ], JSON_THROW_ON_ERROR));
+        }
+
+        return Process::result();
+    });
+}
 
 test('checkConnectivity returns true when internet is available', function () {
     Http::fake([
@@ -125,6 +150,8 @@ test('checkMonitor returns down when content validation fails', function () {
         'example.com' => Http::response('<html><title>Wrong Title</title></html>', 200),
     ]);
 
+    fakeBrowserContentValidation('Wrong Title');
+
     $monitor = Monitor::factory()->create([
         'type' => 'website',
         'url' => 'https://example.com',
@@ -147,6 +174,8 @@ test('checkMonitor title validation requires exact match and does not accept tit
             200
         ),
     ]);
+
+    fakeBrowserContentValidation('Other Page', 'Expected Title');
 
     $monitor = Monitor::factory()->create([
         'type' => 'website',
