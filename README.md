@@ -59,15 +59,12 @@ cd pulse
 
 The `deploy.sh` script will:
 
+- Pull latest code from `origin/main`
 - Create `.env` from `.env.example` if missing
-- Use **Docker** when available, otherwise run on the host
-- Run `php artisan app:deploy` (git sync, dependencies, migrations, optimization)
+- Start Docker containers (when Docker is available) or deploy directly on the host with cron
+- Run migrations and optimization
 
-**Docker:** auto-detected when Docker Compose is available.
-
-**Standard (cPanel/VPS):** runs on the host and adds scheduler + queue cron entries.
-
-To update an existing installation, run `./deploy.sh` or `php artisan app:deploy`.
+To update an existing installation, run `./deploy.sh`. Auto-updates run every five minutes via cron (`./deploy.sh --if-outdated`).
 
 ## ✨ Features
 
@@ -81,7 +78,7 @@ To update an existing installation, run `./deploy.sh` or `php artisan app:deploy
 - 🔐 **Two-factor authentication** for enhanced security
 - 🌙 **Dark mode** for comfortable monitoring
 - 📱 **Mobile-first responsive design** - monitor from anywhere
-- 🔄 **Automatic updates** - checks every five minutes via scheduler; run `./deploy.sh` for manual updates
+- 🔄 **Automatic updates** - `./deploy.sh --if-outdated` runs every five minutes via cron
 
 ---
 
@@ -175,12 +172,12 @@ php artisan ip:unban --all
 
 ### 🔄 Automatic Updates
 
-Pulse checks for and applies updates every five minutes via the Laravel scheduler:
+Pulse checks for and applies updates every five minutes via cron:
 
-- **Lightweight checks**: uses `git ls-remote` (no `git fetch` on every check)
+- **Lightweight checks**: `git fetch` only when the deploy cron runs
 - **Smart skipping**: updates are skipped when the local commit matches remote
-- **Auto-updates**: `app:deploy --if-outdated` runs every five minutes via the scheduler
-- **Manual update**: run `./deploy.sh` or `php artisan app:deploy`
+- **Auto-updates**: `./deploy.sh --if-outdated` runs every five minutes via cron
+- **Manual update**: run `./deploy.sh`
 
 ### 📋 Log Retention
 
@@ -207,8 +204,6 @@ Pulse includes several helpful Artisan commands:
 
 | Command | Description |
 |---------|-------------|
-| `php artisan app:deploy` | Deploy the application (git sync, dependencies, migrations, optimization) |
-| `php artisan app:deploy --if-outdated` | Deploy only when remote has new commits (runs automatically every five minutes) |
 | `php artisan ip:unban <ip>` | Unban a specific IP address |
 | `php artisan ip:unban --all` | Unban all banned IP addresses |
 | `php artisan monitors:check` | Manually trigger monitor checks |
