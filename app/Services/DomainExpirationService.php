@@ -13,7 +13,7 @@ class DomainExpirationService
 
     private const int EXPIRATION_WARNING_DAYS = 30;
 
-    private const int CACHE_TTL = 86400;
+    private const int CACHE_TTL = 3600;
 
     private const array WHOIS_SERVERS = [
         'com' => 'whois.verisign-grs.com',
@@ -54,7 +54,39 @@ class DomainExpirationService
             return $this->errorResult('Could not extract domain from URL');
         }
 
-        return Cache::remember("domain_expiration_{$domain}", self::CACHE_TTL, fn () => $this->queryWhois($domain, $monitor));
+        // Cache only scalars: the cache store does not unserialize objects (serializable_classes = false).
+        $result = Cache::remember("domain_expiration_{$domain}", self::CACHE_TTL, fn () => $this->queryWhois($domain, $monitor));
+
+        if (! $result['expires_at']) {
+            return $result;
+        }
+
+        $expiresAt = Carbon::parse($result['expires_at']);
+        $daysUntilExpiration = self::daysUntil($expiresAt);
+
+        if ($this->isExpiringSoon($daysUntilExpiration)) {
+            Log::channel('database')->warning('Domain expiring soon', [
+                'category' => 'domain',
+                'monitor_id' => $monitor->id,
+                'monitor_name' => $monitor->name,
+                'domain' => $domain,
+                'days_until_expiration' => $daysUntilExpiration,
+            ]);
+        }
+
+        return [
+            'expires_at' => $expiresAt,
+            'days_until_expiration' => $daysUntilExpiration,
+            'error_message' => null,
+        ];
+    }
+
+    /**
+     * Whole days from today until the given date, 0 once it has passed.
+     */
+    public static function daysUntil(Carbon $date): int
+    {
+        return max(0, (int) today()->diffInDays($date->copy()->startOfDay(), false));
     }
 
     public function isExpiringSoon(?int $daysUntilExpiration): bool
@@ -105,6 +137,7 @@ class DomainExpirationService
                 return $this->errorResult($errstr ?: 'Connection failed');
             }
 
+            stream_set_timeout($socket, self::TIMEOUT);
             fwrite($socket, "{$domain}\r\n");
             $response = stream_get_contents($socket);
             fclose($socket);
@@ -133,22 +166,8 @@ class DomainExpirationService
                     if (preg_match('/^(\d{2})-(\d{2})-(\d{4})$/', $dateString, $dateParts)) {
                         $dateString = "{$dateParts[3]}-{$dateParts[2]}-{$dateParts[1]}";
                     }
-                    $expiresAt = Carbon::parse($dateString);
-                    $daysUntilExpiration = max(0, (int) now()->diffInDays($expiresAt, false));
-
-                    if ($daysUntilExpiration <= 30) {
-                        Log::channel('database')->warning('Domain expiring soon', [
-                            'category' => 'domain',
-                            'monitor_id' => $monitor->id,
-                            'monitor_name' => $monitor->name,
-                            'domain' => $domain,
-                            'days_until_expiration' => $daysUntilExpiration,
-                        ]);
-                    }
-
                     return [
-                        'expires_at' => $expiresAt,
-                        'days_until_expiration' => $daysUntilExpiration,
+                        'expires_at' => Carbon::parse($dateString)->toDateString(),
                         'error_message' => null,
                     ];
                 } catch (\Exception $e) {

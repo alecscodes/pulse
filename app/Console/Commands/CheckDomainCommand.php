@@ -42,7 +42,6 @@ class CheckDomainCommand extends Command
 
             $monitor->update([
                 'domain_expires_at' => $result['expires_at'],
-                'domain_days_until_expiration' => $result['days_until_expiration'],
                 'domain_error_message' => $result['error_message'],
                 'domain_last_checked_at' => now(),
             ]);

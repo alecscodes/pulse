@@ -79,3 +79,27 @@ test('isExpiringSoon returns false for null days', function () {
 
     expect($service->isExpiringSoon(null))->toBeFalse();
 });
+
+test('cached whois result is read back from the database store with current days', function () {
+    config(['cache.default' => 'database']);
+    $this->travelTo('2026-09-23 10:00');
+    Cache::put('domain_expiration_example.com', ['expires_at' => '2027-06-15', 'error_message' => null], 3600);
+
+    $service = new DomainExpirationService;
+    $first = $service->getDomainExpiration(Monitor::factory()->create(['url' => 'https://example.com']));
+    $second = $service->getDomainExpiration(Monitor::factory()->create(['url' => 'https://www.example.com']));
+
+    expect($first['expires_at']->toDateString())->toBe('2027-06-15')
+        ->and($first['days_until_expiration'])->toBe(265)
+        ->and($second['days_until_expiration'])->toBe(265);
+});
+
+test('monitor domain days are computed from today', function () {
+    $monitor = Monitor::factory()->create(['domain_expires_at' => '2026-09-24']);
+
+    $this->travelTo('2026-09-23 23:59');
+    expect($monitor->domain_days_until_expiration)->toBe(1);
+
+    $this->travelTo('2026-09-25 00:01');
+    expect($monitor->domain_days_until_expiration)->toBe(0);
+});

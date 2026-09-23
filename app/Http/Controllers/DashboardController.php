@@ -61,8 +61,7 @@ class DashboardController extends Controller
                 'up_monitors' => $totalMonitors - $downMonitors,
                 'down_monitors' => $downMonitors,
                 'expiring_domains' => $baseQuery()
-                    ->whereNotNull('domain_expires_at')
-                    ->whereBetween('domain_days_until_expiration', [1, 30])
+                    ->whereBetween('domain_expires_at', [today()->addDay(), today()->addDays(30)])
                     ->count(),
             ],
             'monitors' => $monitors,

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\DomainExpirationService;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property bool $is_active
  * @property int $check_interval
  * @property Carbon|null $domain_expires_at
- * @property int|null $domain_days_until_expiration
+ * @property-read int|null $domain_days_until_expiration
  * @property string|null $domain_error_message
  * @property Carbon|null $domain_last_checked_at
  * @property Carbon $created_at
@@ -56,7 +58,6 @@ class Monitor extends Model
         'is_active',
         'check_interval',
         'domain_expires_at',
-        'domain_days_until_expiration',
         'domain_error_message',
         'domain_last_checked_at',
     ];
@@ -75,9 +76,16 @@ class Monitor extends Model
             'is_active' => 'boolean',
             'check_interval' => 'integer',
             'domain_expires_at' => 'date',
-            'domain_days_until_expiration' => 'integer',
             'domain_last_checked_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Days until the domain expires, computed from today so it never goes stale.
+     */
+    protected function domainDaysUntilExpiration(): Attribute
+    {
+        return Attribute::get(fn () => $this->domain_expires_at ? DomainExpirationService::daysUntil($this->domain_expires_at) : null);
     }
 
     /**
