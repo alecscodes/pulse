@@ -14,5 +14,6 @@ Schedule::command('domain:check')->daily();
 Schedule::command('logs:cleanup')->daily();
 Schedule::command('monitor-history:cleanup')->daily();
 Schedule::command('monitor-history:cleanup --vacuum')->weeklyOn(0, '03:00');
+Schedule::command('ip:unban --expired')->daily();
 
 Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping(5);

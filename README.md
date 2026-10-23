@@ -210,6 +210,8 @@ Pulse automatically bans IPs for suspicious activity:
 - Accessing non-existent routes (e.g., `/wp-admin`)
 - Automatically detects and bans related IPs (client, forwarded, proxy, server)
 
+Bans expire after 90 days (`ip:unban --expired` runs daily).
+
 **Unban commands:**
 
 ```bash
@@ -247,6 +249,7 @@ Pulse includes several helpful Artisan commands:
 |---------|-------------|
 | `php artisan ip:unban <ip>` | Unban a specific IP address |
 | `php artisan ip:unban --all` | Unban all banned IP addresses |
+| `php artisan ip:unban --expired` | Unban IPs banned more than 90 days ago |
 | `php artisan monitors:check` | Manually trigger monitor checks |
 | `php artisan ssl:check` | Manually check SSL certificates for all active HTTPS monitors (runs automatically daily) |
 | `php artisan domain:check` | Manually check domain expiration for all active monitors (runs automatically daily) |
